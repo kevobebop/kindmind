@@ -162,11 +162,6 @@ export default function Home() {
               className="w-full"
               value={question}
               onChange={handleQuestionChange}
-              {...(typeof window !== 'undefined' // Conditionally add attributes
-                ? {
-                    __gchrome_uniqueid: '1',
-                  }
-                : {})}
             />
 
             <Input type="file" accept="image/*" className="w-full" onChange={handleImageChange} />
