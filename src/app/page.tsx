@@ -89,9 +89,11 @@ export default function Home() {
 
   // Function to handle text-to-speech
   const speakText = useCallback((text: string) => {
-    const speechSynthesis = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(text);
-    speechSynthesis.speak(utterance);
+    if (typeof window !== 'undefined') {
+      const speechSynthesis = window.speechSynthesis;
+      const utterance = new SpeechSynthesisUtterance(text);
+      speechSynthesis.speak(utterance);
+    }
   }, []);
 
   // State to manage camera permission
@@ -100,21 +102,23 @@ export default function Home() {
 
   useEffect(() => {
     const getCameraPermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({video: true});
-        setHasCameraPermission(true);
+      if (typeof window !== 'undefined') {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({video: true});
+          setHasCameraPermission(true);
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings to use this app.  To use camera, the site must be served over HTTPS or localhost.',
+          });
         }
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this app.  To use camera, the site must be served over HTTPS or localhost.',
-        });
       }
     };
 
@@ -174,7 +178,7 @@ export default function Home() {
                 className="rounded-md"
               />
             )}
-              {hasCameraPermission ? (
+              {hasCameraPermission && typeof window !== 'undefined' ? (
                 <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted />
               ) : (
                 <Alert variant="destructive">
