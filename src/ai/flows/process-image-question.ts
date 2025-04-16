@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use server';
 /**
  * @fileOverview This file defines the Genkit flow for processing image-based homework questions.

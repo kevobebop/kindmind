@@ -1,6 +1,6 @@
 'use client';
 
-import {useState, useCallback} from 'react';
+import {useState, useCallback, useRef, useEffect} from 'react';
 import {generateHomeworkAnswer, GenerateHomeworkAnswerOutput} from '@/ai/flows/generate-homework-answer';
 import {summarizeAnswer} from '@/ai/flows/summarize-answer-for-clarity';
 import {processImageQuestion} from '@/ai/flows/process-image-question';
@@ -9,7 +9,8 @@ import {Textarea} from '@/components/ui/textarea';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {useToast} from '@/hooks/use-toast';
-import {useEffect} from 'react';
+import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert';
+import {Camera} from 'lucide-react';
 
 const imageStyle = {
   maxWidth: '100%',
@@ -26,6 +27,8 @@ export default function Home() {
   const [questionHistory, setQuestionHistory] = useState<
     {question: string; answer: GenerateHomeworkAnswerOutput}[]
   >([]);
+  const [hasCameraPermission, setHasCameraPermission] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleQuestionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setQuestion(e.target.value);
@@ -41,6 +44,24 @@ export default function Home() {
       reader.readAsDataURL(file);
     }
   };
+
+  const handleCameraCapture = useCallback(async () => {
+    if (videoRef.current && hasCameraPermission) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      const capturedImage = canvas.toDataURL('image/png');
+      setImageUrl(capturedImage);
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Camera Error',
+        description: 'Camera access is not allowed. Please check your browser settings.',
+      });
+    }
+  }, [hasCameraPermission, toast]);
 
   const handleSubmit = useCallback(async () => {
     setLoading(true);
@@ -86,6 +107,36 @@ export default function Home() {
     console.log('Question History updated:', questionHistory);
   }, [questionHistory]);
 
+  // Function to handle text-to-speech
+  const speakText = useCallback((text: string) => {
+    const speechSynthesis = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(text);
+    speechSynthesis.speak(utterance);
+  }, []);
+
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({video: true});
+        setHasCameraPermission(true);
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this app.',
+        });
+      }
+    };
+
+    getCameraPermission();
+  }, []);
+
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-secondary">
       <header className="w-full max-w-2xl mb-6">
@@ -107,7 +158,24 @@ export default function Home() {
               value={question}
               onChange={handleQuestionChange}
             />
+
             <Input type="file" accept="image/*" className="w-full" onChange={handleImageChange} />
+
+            <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted />
+            <Button onClick={handleCameraCapture} disabled={loading || !hasCameraPermission}>
+              <Camera className="mr-2 h-4 w-4" />
+              Capture with Camera
+            </Button>
+            { !(hasCameraPermission) && (
+                <Alert variant="destructive">
+                  <AlertTitle>Camera Access Required</AlertTitle>
+                  <AlertDescription>
+                    Please allow camera access to use this feature.
+                  </AlertDescription>
+                </Alert>
+            )
+            }
+
             {imageUrl && (
               <img
                 src={imageUrl}
@@ -129,6 +197,9 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <p>{answer.answer}</p>
+              <Button onClick={() => speakText(answer.answer)}>
+                Read Aloud
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -159,3 +230,4 @@ export default function Home() {
     </div>
   );
 }
+
