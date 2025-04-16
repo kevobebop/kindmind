@@ -89,11 +89,9 @@ export default function Home() {
 
   // Function to handle text-to-speech
   const speakText = useCallback((text: string) => {
-    if (typeof window !== 'undefined') {
       const speechSynthesis = window.speechSynthesis;
       const utterance = new SpeechSynthesisUtterance(text);
       speechSynthesis.speak(utterance);
-    }
   }, []);
 
   // State to manage camera permission
@@ -102,7 +100,6 @@ export default function Home() {
 
   useEffect(() => {
     const getCameraPermission = async () => {
-      if (typeof window !== 'undefined') {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({video: true});
           setHasCameraPermission(true);
@@ -119,7 +116,6 @@ export default function Home() {
             description: 'Please enable camera permissions in your browser settings to use this app.  To use camera, the site must be served over HTTPS or localhost.',
           });
         }
-      }
     };
 
     getCameraPermission();
@@ -178,7 +174,7 @@ export default function Home() {
                 className="rounded-md"
               />
             )}
-              {hasCameraPermission === true && typeof window !== 'undefined' ? (
+              {hasCameraPermission === true ? (
                 <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted />
               ) : (hasCameraPermission === false &&
                 <Alert variant="destructive">
