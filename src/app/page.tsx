@@ -15,6 +15,7 @@ import {Textarea} from '@/components/ui/textarea';
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from '@/components/ui/dialog';
 import {Label} from '@/components/ui/label';
 import {Switch} from '@/components/ui/switch';
+import {asdTutor, AsdTutorOutput} from '@/ai/flows/asd-tutor-flow'; // Import the asdTutor function
 
 const imageStyle = {
   maxWidth: '100%',
@@ -48,6 +49,11 @@ export default function Home() {
 
   // Subscription State
   const [isSubscribed, setIsSubscribed] = useState(false);
+
+  // ASD Tutor State
+  const [asdAnswer, setAsdAnswer] = useState<AsdTutorOutput | null>(null); // New state for ASD-tailored answers
+  const [topic, setTopic] = useState(''); // Add topic state
+  const [additionalNotes, setAdditionalNotes] = useState('');
 
   const handleQuestionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setQuestion(e.target.value);
@@ -106,6 +112,14 @@ export default function Home() {
       // Generate Lesson Plan and Progress Report
       setLessonPlan('AI Generated Lesson Plan Here');
       setProgressReport('AI Generated Progress Report Here');
+
+      // Generate ASD-tailored Answer
+      const asdResponse = await asdTutor({
+        question: question,
+        topic: topic,
+        additionalNotes: additionalNotes,
+      });
+      setAsdAnswer(asdResponse); // Store the ASD-tailored answer
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -115,7 +129,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [question, imageUrl, toast, isSubscribed]);
+  }, [question, imageUrl, toast, isSubscribed, topic, additionalNotes]);
 
   useEffect(() => {
     console.log('Question History updated:', questionHistory);
@@ -230,6 +244,18 @@ export default function Home() {
                   value={question}
                   onChange={handleQuestionChange}
                 />
+                <Textarea
+                  placeholder="Topic..."
+                  className="w-full"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                />
+                 <Textarea
+                  placeholder="Additional Notes for tailoring the answer to the student's learning style..."
+                  className="w-full"
+                  value={additionalNotes}
+                  onChange={(e) => setAdditionalNotes(e.target.value)}
+                />
 
                 <Input type="file" accept="image/*" className="w-full" onChange={handleImageChange} />
 
@@ -341,6 +367,22 @@ export default function Home() {
                 </CardContent>
               </Card>
             )}
+
+             {asdAnswer && (
+              <Card className="w-full mt-4">
+                <CardHeader>
+                  <CardTitle>ASD-Tailored Answer</CardTitle>
+                  <CardDescription>AI-generated answer tailored for students with ASD:</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p>{asdAnswer.answer}</p>
+                  <Button onClick={() => speakText(asdAnswer.answer)}>
+                    Read Aloud (ASD)
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {questionHistory.length > 0 && (
               <Card className="w-full mt-4">
                 <CardHeader>
