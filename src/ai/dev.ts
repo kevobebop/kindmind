@@ -3,3 +3,4 @@ import '@/ai/flows/generate-homework-answer.ts';
 import '@/ai/flows/process-image-question.ts';
 import '@/ai/flows/generate-lesson-plan.ts';
 import '@/ai/flows/generate-progress-report.ts';
+import '@/ai/flows/asd-tutor-flow.ts';
