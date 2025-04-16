@@ -5,18 +5,23 @@ import {generateHomeworkAnswer, GenerateHomeworkAnswerOutput} from '@/ai/flows/g
 import {summarizeAnswer} from '@/ai/flows/summarize-answer-for-clarity';
 import {processImageQuestion} from '@/ai/flows/process-image-question';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
-import {Textarea} from '@/components/ui/textarea';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {useToast} from '@/hooks/use-toast';
 import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert';
 import {Camera} from 'lucide-react';
+import dynamic from 'next/dynamic';
 
 const imageStyle = {
   maxWidth: '100%',
   maxHeight: '300px',
   objectFit: 'contain',
 };
+
+// Dynamically import the Textarea component to ensure it's client-side rendered
+const DynamicTextarea = dynamic(() => import('@/components/ui/textarea').then(module => module.Textarea), {
+  ssr: false, // Disable server-side rendering
+});
 
 export default function Home() {
   const [question, setQuestion] = useState('');
@@ -157,7 +162,7 @@ export default function Home() {
             <CardDescription>Enter your homework question below:</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <Textarea
+            <DynamicTextarea
               placeholder="Enter your question here..."
               className="w-full"
               value={question}
