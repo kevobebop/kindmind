@@ -1,0 +1,5 @@
+The current Homework Helper AI is a web application built using Next.js, which is designed to run in a web browser. To make it accessible on an iPhone, you can deploy it to a hosting service like Firebase Hosting, Vercel, or Netlify. Once deployed, users can access the app through Safari or any other web browser on their iPhones.
+
+It's important to understand that this is different from creating a native iPhone app that you would download from the App Store. Native iPhone apps are built using technologies like Swift or Objective-C and require a different development process.
+
+Unfortunately, automatically converting this Next.js web app to a native iPhone app is beyond the scope of this project and not something I can directly achieve. If you're interested in a native iPhone app, you would need to rebuild the application using native iOS development tools.
