@@ -10,6 +10,7 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {useToast} from '@/hooks/use-toast';
 import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert';
+import {Camera} from 'lucide-react';
 
 const imageStyle = {
   maxWidth: '100%',
@@ -93,6 +94,54 @@ export default function Home() {
     speechSynthesis.speak(utterance);
   }, []);
 
+  // State to manage camera permission
+  const [hasCameraPermission, setHasCameraPermission] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({video: true});
+        setHasCameraPermission(true);
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this app.  To use camera, the site must be served over HTTPS or localhost.',
+        });
+      }
+    };
+
+    getCameraPermission();
+  }, [toast]);
+
+  const captureImage = useCallback(() => {
+    if (hasCameraPermission && videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      const capturedImageUrl = canvas.toDataURL('image/png');
+      setImageUrl(capturedImageUrl);
+      toast({
+        title: 'Image Captured',
+        description: 'The image from the camera has been captured.',
+      });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'No Camera Access',
+        description: 'Please allow camera access to capture an image.',
+      });
+    }
+  }, [hasCameraPermission, toast]);
+
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-secondary">
       <header className="w-full max-w-2xl mb-6">
@@ -113,6 +162,11 @@ export default function Home() {
               className="w-full"
               value={question}
               onChange={handleQuestionChange}
+              {...(typeof window !== 'undefined' // Conditionally add attributes
+                ? {
+                    __gchrome_uniqueid: '1',
+                  }
+                : {})}
             />
 
             <Input type="file" accept="image/*" className="w-full" onChange={handleImageChange} />
@@ -125,9 +179,29 @@ export default function Home() {
                 className="rounded-md"
               />
             )}
-            <Button onClick={handleSubmit} disabled={loading}>
-              {loading ? 'Generating Answer...' : 'Get Answer'}
-            </Button>
+              {hasCameraPermission ? (
+                <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted />
+              ) : (
+                <Alert variant="destructive">
+                  <AlertTitle>Camera Access Required</AlertTitle>
+                  <AlertDescription>
+                    Please allow camera access to use this feature.  To use camera, the site must be served over HTTPS or localhost.
+                  </AlertDescription>
+                </Alert>
+              )}
+            <div className="flex justify-between">
+              <Button onClick={handleSubmit} disabled={loading}>
+                {loading ? 'Generating Answer...' : 'Get Answer'}
+              </Button>
+              <Button
+                onClick={captureImage}
+                disabled={loading || !hasCameraPermission}
+                variant="secondary"
+              >
+                <Camera className="mr-2 h-4 w-4" />
+                Capture Image
+              </Button>
+            </div>
           </CardContent>
         </Card>
         {answer && (
