@@ -97,7 +97,7 @@ export default function Home() {
   }, []);
 
   // State to manage camera permission
-  const [hasCameraPermission, setHasCameraPermission] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -178,9 +178,9 @@ export default function Home() {
                 className="rounded-md"
               />
             )}
-              {hasCameraPermission && typeof window !== 'undefined' ? (
+              {hasCameraPermission === true && typeof window !== 'undefined' ? (
                 <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted />
-              ) : (
+              ) : (hasCameraPermission === false &&
                 <Alert variant="destructive">
                   <AlertTitle>Camera Access Required</AlertTitle>
                   <AlertDescription>
