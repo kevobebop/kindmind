@@ -9,7 +9,7 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {useToast} from '@/hooks/use-toast';
 import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert';
-import {Camera} from 'lucide-react';
+import {Camera, Speech} from 'lucide-react';
 import dynamic from 'next/dynamic';
 import {Textarea} from '@/components/ui/textarea';
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from '@/components/ui/dialog';
@@ -139,6 +139,7 @@ export default function Home() {
   const speakText = useCallback((text: string) => {
     const speechSynthesis = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.8;
     speechSynthesis.speak(utterance);
   }, []);
 
@@ -205,29 +206,31 @@ export default function Home() {
     setIsSubscribed(true);
     toast({
       title: 'Subscription Successful',
-      description: 'You are now subscribed for $5.99/week.',
+      description: 'You are now subscribed for $9.99/month with a free first month.',
     });
   };
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-secondary">
       <header className="w-full max-w-2xl mb-6">
-        <h1 className="text-3xl font-semibold text-center text-primary">AI Tutor</h1>
+        {/* Replace with your logo */}
+        <img src="/your-logo.png" alt="Kind Mind and Learning Logo" className="h-16 mx-auto mb-4" />
+        <h1 className="text-3xl font-semibold text-center text-primary">Kind Mind and Learning</h1>
         <p className="text-muted-foreground text-center">
-          Your Personal AI Tutor
+          Your Personal AI Tutor for Special Needs
         </p>
       </header>
       <main className="flex flex-col items-center justify-center w-full max-w-2xl flex-1 px-4 text-center">
         {!isSubscribed ? (
           <Card className="w-full mb-4">
             <CardHeader>
-              <CardTitle>Subscribe Now</CardTitle>
+              <CardTitle>Start Your Free Month</CardTitle>
               <CardDescription>
-                Get full access to all features for only $5.99/week!
+                Get full access to all features for a free month, then $9.99/month! No credit card required until the trial ends.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={handleSubscribe}>Subscribe</Button>
+              <Button className="bg-primary text-primary-foreground px-8 py-4 text-lg font-semibold rounded-md shadow-md hover:bg-primary/80" onClick={handleSubscribe}>Subscribe</Button>
             </CardContent>
           </Card>
         ) : (
@@ -278,7 +281,7 @@ export default function Home() {
                   </Alert>
                 )}
                 <div className="flex justify-between">
-                  <Button onClick={handleSubmit} disabled={loading}>
+                  <Button className="bg-accent text-accent-foreground px-8 py-4 text-lg font-semibold rounded-md shadow-md hover:bg-accent/80" onClick={handleSubmit} disabled={loading}>
                     {loading ? 'Generating Answer...' : 'Get Answer'}
                   </Button>
                   <Button
@@ -307,6 +310,14 @@ export default function Home() {
                     checked={isVoiceChatEnabled}
                     onCheckedChange={toggleVoiceChat}
                   />
+                   <Button
+                    onClick={toggleVoiceChat}
+                    disabled={loading}
+                    variant="secondary"
+                  >
+                    <Speech className="mr-2 h-4 w-4" />
+                    Voice Chat
+                  </Button>
                 </div>
                 {isVoiceChatEnabled && (
                   <div className="mt-4">

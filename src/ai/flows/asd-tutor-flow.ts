@@ -14,6 +14,9 @@ import {z} from 'genkit';
 const AsdTutorInputSchema = z.object({
   question: z.string().describe('The specific question the student has.'),
   topic: z.string().describe('The topic or subject area of the question.'),
+  currentGrades: z.string().optional().describe('The student\'s current grades.'),
+  strengths: z.string().optional().describe('The student\'s strengths.'),
+  struggles: z.string().optional().describe('The student\'s struggles.'),
   additionalNotes: z.string().optional().describe('Any additional notes or context about the student or their needs.')
 });
 export type AsdTutorInput = z.infer<typeof AsdTutorInputSchema>;
@@ -33,6 +36,9 @@ const prompt = ai.definePrompt({
     schema: z.object({
       question: z.string().describe('The specific question the student has.'),
       topic: z.string().describe('The topic or subject area of the question.'),
+      currentGrades: z.string().optional().describe('The student\'s current grades.'),
+      strengths: z.string().optional().describe('The student\'s strengths.'),
+      struggles: z.string().optional().describe('The student\'s struggles.'),
       additionalNotes: z.string().optional().describe('Any additional notes or context about the student or their needs.')
     }),
   },
@@ -41,8 +47,8 @@ const prompt = ai.definePrompt({
       answer: z.string().describe('The AI-generated answer, tailored for a student with ASD.'),
     }),
   },
-  prompt: `You are an AI tutor specializing in assisting students with Autism Spectrum Disorder (ASD).
-      Your goal is to provide clear, concise, and supportive answers that cater to their specific learning styles and needs.
+  prompt: `You are a special needs AI tutor specializing in assisting students with Autism Spectrum Disorder (ASD).
+      Your goal is to provide clear, concise, and supportive answers that cater to their specific learning styles and needs. Always act in a patient, friendly, nurturing, and calming manner.
 
       Consider these principles when crafting your responses:
       *   Provide answers in a structured and predictable format.
@@ -55,11 +61,23 @@ const prompt = ai.definePrompt({
       Topic: {{{topic}}}
       Question: {{{question}}}
 
+      {{#if currentGrades}}
+      Current Grades: {{{currentGrades}}}
+      {{/if}}
+
+      {{#if strengths}}
+      Strengths: {{{strengths}}}
+      {{/if}}
+
+      {{#if struggles}}
+      Struggles: {{{struggles}}}
+      {{/if}}
+
       {{#if additionalNotes}}
       Additional Notes: {{{additionalNotes}}}
       {{/if}}
 
-      Provide a helpful, informative, and supportive answer to the student's question, keeping in mind their unique learning style.
+      Provide a helpful, informative, and supportive answer to the student's question, keeping in mind their unique learning style and special needs.
   `
 });
 
