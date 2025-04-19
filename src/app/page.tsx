@@ -8,10 +8,10 @@ import {
 import { summarizeAnswer } from '@/ai/flows/summarize-answer-for-clarity';
 import { processImageQuestion } from '@/ai/flows/process-image-question';
 import { asdTutor, AsdTutorOutput } from '@/ai/flows/asd-tutor-flow';
-import { checkUnderstanding, CheckUnderstandingOutput } from '@/ai/flows/check-understanding';
-import { generateMiniQuiz, GenerateMiniQuizOutput } from '@/ai/flows/generate-mini-quiz';
-import { getLearningStyle, GetLearningStyleOutput } from '@/ai/flows/get-learning-style';
-import { generateProgressReport, GenerateProgressReportOutput } from '@/ai/flows/generate-progress-report';
+import { checkUnderstanding } from '@/ai/flows/check-understanding';
+import { generateMiniQuiz } from '@/ai/flows/generate-mini-quiz';
+import { getLearningStyle } from '@/ai/flows/get-learning-style';
+import { generateProgressReport } from '@/ai/flows/generate-progress-report';
 import {
   Card,
   CardContent,
@@ -268,13 +268,13 @@ export default function Home() {
                 dataKey="questions"
                 stroke="#8884d8"
                 activeDot={{ r: 8 }}
-                strokeDasharray="3 3" // Ensure it's a string
+                strokeDasharray="0px, 0px" // Ensure it's a string
               />
               <Line
                 type="monotone"
                 dataKey="mastery"
                 stroke="#82ca9d"
-                strokeDasharray="3 3" // Ensure it's a string
+                strokeDasharray="0px, 0px" // Ensure it's a string
               />
             </LineChart>
           </CardContent>
