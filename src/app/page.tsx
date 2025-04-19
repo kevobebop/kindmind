@@ -1,12 +1,6 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import {
-  generateHomeworkAnswer,
-  GenerateHomeworkAnswerOutput,
-} from '@/ai/flows/generate-homework-answer';
-import { summarizeAnswer } from '@/ai/flows/summarize-answer-for-clarity';
-import { processImageQuestion } from '@/ai/flows/process-image-question';
 import { asdTutor, AsdTutorOutput } from '@/ai/flows/asd-tutor-flow';
 import { checkUnderstanding, CheckUnderstandingOutput } from '@/ai/flows/check-understanding';
 import { generateMiniQuiz, GenerateMiniQuizOutput } from '@/ai/flows/generate-mini-quiz';
@@ -37,18 +31,18 @@ const imageStyle = {
 
 export default function Home() {
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState<GenerateHomeworkAnswerOutput | null>(null);
+  const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const { toast } = useToast();
-  const [questionHistory, setQuestionHistory] = useState<{ question: string; answer: GenerateHomeworkAnswerOutput }[]>([]);
+  const [questionHistory, setQuestionHistory] = useState<{ question: string; answer: string }[]>([]);
 
   const [isVoiceChatEnabled, setIsVoiceChatEnabled] = useState(false);
   const [voiceChatTranscript, setVoiceChatTranscript] = useState('');
   const [lessonPlan, setLessonPlan] = useState('');
   const [showLessonPlan, setShowLessonPlan] = useState(false);
   const [progressReport, setProgressReport] = useState('');
-  const [isSubscribed, setIsSubscribed] = useState(true); // Assume subscribed for testing
+  const [isSubscribed, setIsSubscribed] = useState(true);
   const [asdAnswer, setAsdAnswer] = useState<AsdTutorOutput | null>(null);
   const [topic, setTopic] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
@@ -76,22 +70,10 @@ export default function Home() {
 
     setLoading(true);
     try {
-      let generatedAnswer: GenerateHomeworkAnswerOutput;
+      // Replace with Genkit flow
+      setAnswer('AI answer will come here based on the image or text input');
 
-      if (imageUrl) {
-        const processedImage = await processImageQuestion({ imageURL: imageUrl, questionText: question });
-        generatedAnswer = { answer: processedImage.answerText || 'No answer could be generated' };
-      } else {
-        generatedAnswer = await generateHomeworkAnswer({ question });
-      }
-
-      if (generatedAnswer?.answer) {
-        const summarized = await summarizeAnswer({ answer: generatedAnswer.answer });
-        generatedAnswer.answer = summarized.summary;
-      }
-
-      setAnswer(generatedAnswer);
-      setQuestionHistory((prev) => [...prev, { question, answer: generatedAnswer }]);
+      setQuestionHistory((prev) => [...prev, { question, answer: 'AI answer will come here' }]);
       setLessonPlan('AI Generated Lesson Plan Here');
 
       const asdResponse = await asdTutor({ question, topic, additionalNotes });
@@ -104,9 +86,9 @@ export default function Home() {
   }, [question, imageUrl, toast, isSubscribed, topic, additionalNotes]);
 
   const handleCheckUnderstanding = async () => {
-    if (!answer?.answer) return;
+    if (!answer) return;
     try {
-      const res = await checkUnderstanding({ answer: answer.answer });
+      const res = await checkUnderstanding({ answer: answer });
       toast({ title: 'Orbii says:', description: res.followUpQuestion });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Check Understanding Error', description: error.message || 'Failed to check understanding.' });
@@ -124,7 +106,7 @@ export default function Home() {
 
   const handleProgressReport = async () => {
     try {
-      const sessions = questionHistory.map(item => ({ topic: item.question, successLevel: 1, notes: item.answer.answer }));
+      const sessions = questionHistory.map(item => ({ topic: item.question, successLevel: 1, notes: item.answer }));
       const res = await generateProgressReport({ sessions });
       setProgressReport(res.report);
       toast({ title: 'Progress Report Generated', description: 'Check your progress summary below.' });
@@ -155,7 +137,7 @@ export default function Home() {
         <Card className="w-full max-w-2xl">
           <CardHeader>
             <CardTitle>Answer</CardTitle>
-            <CardDescription>{answer.answer}</CardDescription>
+            <CardDescription>{answer}</CardDescription>
           </CardHeader>
         </Card>
       )}
