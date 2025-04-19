@@ -23,12 +23,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Camera, Speech } from 'lucide-react';
+import { Camera, Speech, Microchip } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { MoodSelector } from '@/components/mood-selector'; // Import MoodSelector
+import { MoodSelector } from '@/components/mood-selector';
 import {
   LineChart,
   Line,
@@ -124,23 +124,28 @@ export default function Home() {
   const handleCheckUnderstanding = async () => {
     if (!answer?.answer) return;
     const res = await checkUnderstanding({ answer: answer.answer });
-    toast({ title: 'Orbii says:', description: res.response });
+    toast({ title: 'Orbii says:', description: res?.followUpQuestion });
   };
 
   const handleMiniQuiz = async () => {
     const res = await generateMiniQuiz({ topic });
-    toast({ title: 'Mini Quiz', description: res.quiz.join('\n') });
+     if (res?.questions) {
+       const quiz = res.questions.map((q, index) => `${index + 1}. ${q.question}\nAnswer: ${q.answer}`);
+       toast({ title: 'Mini Quiz', description: quiz.join('\n') });
+     } else {
+       toast({ title: 'Mini Quiz', description: 'Could not generate quiz.' });
+     }
   };
 
   const handleProgressReport = async () => {
-    const res = await generateProgressReport({ history: questionHistory });
-    setProgressReport(res.report);
+    const res = await generateProgressReport({ sessions: questionHistory.map(q => ({topic: q.question, successLevel: 0.8})) });
+    setProgressReport(res?.report || 'Could not generate progress report.');
     toast({ title: 'Progress Report Generated', description: 'Check your progress summary below.' });
   };
 
   const handleGetLearningStyle = async () => {
-    const res = await getLearningStyle({ studentName: 'Kevin' });
-    toast({ title: 'Preferred Learning Style', description: res.style });
+    const res = await getLearningStyle({ options: ['Show me with pictures', 'Explain it with steps', 'Talk it through with me', 'Give me a practice problem'] });
+    toast({ title: 'Preferred Learning Style', description: res?.selectedStyle });
   };
 
   // New function for mood selection
@@ -151,10 +156,6 @@ export default function Home() {
 
   // New function for opening mind map
   const openMindMap = () => {
-    // Here, you would either:
-    // 1. Open a URL to an external mind map tool (like Excalidraw)
-    // 2. Integrate an embedded whiteboard component
-    // For simplicity, let's just set a dummy URL:
     setMindMapUrl('https://excalidraw.com/#json=value,value');
   };
 
@@ -166,9 +167,15 @@ export default function Home() {
     { name: 'Week 4', questions: 18, mastery: 0.9 },
   ];
 
+   // Generate a unique clipPathId for the chart
+  const [clipPathId, setClipPathId] = useState('');
+  useEffect(() => {
+    setClipPathId(`recharts-clip-${Math.random().toString(36).substring(2, 15)}`);
+  }, []);
+
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-secondary px-4">
-      <h1 className="text-3xl font-bold mb-4">Welcome to Orbii's AI Tutor</h1>
+      <h1 className="text-3xl font-bold mb-4">Welcome to Kind Mind and Learning</h1>
 
       {/* New Mood Selector */}
       <MoodSelector onSelectMood={handleMoodSelect} />
@@ -201,10 +208,18 @@ export default function Home() {
       )}
 
       <div className="grid grid-cols-2 gap-2 mt-4">
-        <Button onClick={handleCheckUnderstanding}>🧠 Check Understanding</Button>
-        <Button onClick={handleMiniQuiz}>📝 Get Mini Quiz</Button>
-        <Button onClick={handleProgressReport}>📈 View Progress Report</Button>
-        <Button onClick={handleGetLearningStyle}>🎨 Learning Style</Button>
+        <Button onClick={handleCheckUnderstanding}>
+           Check Understanding
+        </Button>
+        <Button onClick={handleMiniQuiz}>
+           Get Mini Quiz
+        </Button>
+        <Button onClick={handleProgressReport}>
+           View Progress Report
+        </Button>
+        <Button onClick={handleGetLearningStyle}>
+           Learning Style
+        </Button>
         <Button onClick={openMindMap}>
           Launch Mind Map
         </Button>
@@ -248,8 +263,19 @@ export default function Home() {
               <YAxis />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="questions" stroke="#8884d8" activeDot={{ r: 8 }} />
-              <Line type="monotone" dataKey="mastery" stroke="#82ca9d" />
+              <Line
+                type="monotone"
+                dataKey="questions"
+                stroke="#8884d8"
+                activeDot={{ r: 8 }}
+                strokeDasharray="3 3" // Ensure it's a string
+              />
+              <Line
+                type="monotone"
+                dataKey="mastery"
+                stroke="#82ca9d"
+                strokeDasharray="3 3" // Ensure it's a string
+              />
             </LineChart>
           </CardContent>
         </Card>
@@ -265,3 +291,4 @@ export default function Home() {
     </div>
   );
 }
+
