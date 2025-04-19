@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * @fileOverview Generates student progress reports based on their learning history.
+ * @fileOverview Generates a progress report based on multiple sessions.
  *
  * - generateProgressReport - A function that generates a progress report.
  * - GenerateProgressReportInput - The input type for the generateProgressReport function.
@@ -12,13 +12,16 @@ import {ai} from '@/ai/ai-instance';
 import {z} from 'genkit';
 
 const GenerateProgressReportInputSchema = z.object({
-  studentId: z.string().describe('The ID of the student.'),
-  learningHistory: z.string().describe('The student\'s learning history data.'),
+  sessions: z.array(z.object({
+    topic: z.string().describe('The topic of the session.'),
+    successLevel: z.number().describe('The success level of the session.'),
+    notes: z.string().optional().describe('Any notes from the session.'),
+  })).describe('An array of session details.'),
 });
 export type GenerateProgressReportInput = z.infer<typeof GenerateProgressReportInputSchema>;
 
 const GenerateProgressReportOutputSchema = z.object({
-  progressReport: z.string().describe('The generated progress report.'),
+  report: z.string().describe('The generated progress report.'),
 });
 export type GenerateProgressReportOutput = z.infer<typeof GenerateProgressReportOutputSchema>;
 
@@ -30,22 +33,26 @@ const prompt = ai.definePrompt({
   name: 'generateProgressReportPrompt',
   input: {
     schema: z.object({
-      studentId: z.string().describe('The ID of the student.'),
-      learningHistory: z.string().describe('The student\'s learning history data.'),
+      sessions: z.array(z.object({
+        topic: z.string().describe('The topic of the session.'),
+        successLevel: z.number().describe('The success level of the session.'),
+        notes: z.string().optional().describe('Any notes from the session.'),
+      })).describe('An array of session details.'),
     }),
   },
   output: {
     schema: z.object({
-      progressReport: z.string().describe('The generated progress report.'),
+      report: z.string().describe('The generated progress report.'),
     }),
   },
-  prompt: `You are an AI assistant specializing in generating student progress reports.
+  prompt: `You are an AI tutor writing a progress report.
 
-  Based on the student's learning history, generate a comprehensive and informative progress report.
+Here are the session notes:
+{{sessions}}
 
-  Student ID: {{{studentId}}}
-  Learning History: {{{learningHistory}}}
-  `
+Summarize improvement, challenges, and encouragement.
+
+Keep it positive, supportive, and appropriate for neurodiverse learners.`,
 });
 
 const generateProgressReportFlow = ai.defineFlow<

@@ -419,7 +419,24 @@ export default function Home() {
         <p>
           Powered by Firebase Studio and Genkit AI
         </p>
+        <Button
+  onClick={async () => {
+    const res = await fetch('/api/tutor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Hello Tutor, what can you do?' }),
+    });
+
+    const data = await res.json();
+    console.log('API Tutor Response:', data.reply);
+    alert(`Tutor says: ${data.reply}`);
+  }}
+  className="mt-4 bg-purple-600 text-white px-6 py-3 rounded shadow hover:bg-purple-700"
+>
+  🧠 Test Tutor API
+</Button>
       </footer>
     </div>
   );
 }
+
