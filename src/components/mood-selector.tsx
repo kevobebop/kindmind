@@ -32,3 +32,4 @@ export function MoodSelector({ onSelectMood }: MoodSelectorProps) {
     </div>
   );
 }
+

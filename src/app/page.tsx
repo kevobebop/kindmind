@@ -1,17 +1,14 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import {
-  generateHomeworkAnswer,
-  GenerateHomeworkAnswerOutput,
-} from '@/ai/flows/generate-homework-answer';
+import { generateHomeworkAnswer, GenerateHomeworkAnswerOutput } from '@/ai/flows/generate-homework-answer';
 import { summarizeAnswer } from '@/ai/flows/summarize-answer-for-clarity';
 import { processImageQuestion } from '@/ai/flows/process-image-question';
 import { asdTutor, AsdTutorOutput } from '@/ai/flows/asd-tutor-flow';
-import { checkUnderstanding } from '@/ai/flows/check-understanding';
-import { generateMiniQuiz } from '@/ai/flows/generate-mini-quiz';
-import { getLearningStyle } from '@/ai/flows/get-learning-style';
-import { generateProgressReport } from '@/ai/flows/generate-progress-report';
+import { checkUnderstanding, CheckUnderstandingOutput } from '@/ai/flows/check-understanding';
+import { generateMiniQuiz, GenerateMiniQuizOutput } from '@/ai/flows/generate-mini-quiz';
+import { getLearningStyle, GetLearningStyleOutput } from '@/ai/flows/get-learning-style';
+import { generateProgressReport, GenerateProgressReportOutput } from '@/ai/flows/generate-progress-report';
 import {
   Card,
   CardContent,
@@ -28,12 +25,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { MoodSelector } from '@/components/mood-selector';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const imageStyle = {
   maxWidth: '100%',
   maxHeight: '300px',
   objectFit: 'contain',
 };
+
+const progressData = [
+  { name: 'Week 1', questions: 20, mastery: 0.5 },
+  { name: 'Week 2', questions: 25, mastery: 0.6 },
+  { name: 'Week 3', questions: 30, mastery: 0.7 },
+  { name: 'Week 4', questions: 35, mastery: 0.8 },
+];
 
 export default function Home() {
   const [question, setQuestion] = useState('');
@@ -52,6 +58,7 @@ export default function Home() {
   const [asdAnswer, setAsdAnswer] = useState<AsdTutorOutput | null>(null);
   const [topic, setTopic] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [currentMood, setCurrentMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
 
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
@@ -83,6 +90,7 @@ export default function Home() {
       }
     }
   }, [toast]);
+
 
   const handleQuestionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setQuestion(e.target.value);
@@ -137,28 +145,40 @@ export default function Home() {
   const handleCheckUnderstanding = async () => {
     if (!answer?.answer) return;
     const res = await checkUnderstanding({ answer: answer.answer });
-    toast({ title: 'Orbii says:', description: res.response });
+    toast({ title: 'Orbii says:', description: res.followUpQuestion });
   };
 
   const handleMiniQuiz = async () => {
     const res = await generateMiniQuiz({ topic });
-    toast({ title: 'Mini Quiz', description: res.quiz.join('\n') });
+    toast({ title: 'Mini Quiz', description: JSON.stringify(res.questions, null, 2) });
   };
 
   const handleProgressReport = async () => {
-    const res = await generateProgressReport({ history: questionHistory });
+    const sessions = questionHistory.map(item => ({
+      topic: topic,
+      successLevel: 0.75, // Dummy success level
+      notes: `Question: ${item.question}, Answer: ${item.answer.answer}`,
+    }));
+    const res = await generateProgressReport({ sessions });
     setProgressReport(res.report);
     toast({ title: 'Progress Report Generated', description: 'Check your progress summary below.' });
   };
 
   const handleGetLearningStyle = async () => {
-    const res = await getLearningStyle({ studentName: 'Kevin' });
-    toast({ title: 'Preferred Learning Style', description: res.style });
+    const res = await getLearningStyle({ options: ['Show me with pictures', 'Explain it with steps', 'Talk it through with me', 'Give me a practice problem'] });
+    toast({ title: 'Preferred Learning Style', description: res.selectedStyle });
+  };
+
+  const handleMoodSelect = (mood: 'happy' | 'neutral' | 'sad') => {
+    console.log(`Mood selected: ${mood}`);
+    setCurrentMood(mood);
   };
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-secondary px-4">
-      <h1 className="text-3xl font-bold mb-4">Welcome to Orbii's AI Tutor</h1>
+      <h1 className="text-3xl font-bold mb-4">Welcome to Kind Mind and Learning</h1>
+
+      <MoodSelector onSelectMood={handleMoodSelect} />
 
       <Textarea value={question} onChange={handleQuestionChange} placeholder="Type your question here..." className="mb-2" />
       <Input type="file" accept="image/*" onChange={handleImageChange} className="mb-2" />
@@ -210,6 +230,29 @@ export default function Home() {
           </CardHeader>
         </Card>
       )}
+       <Card className="w-full max-w-2xl mt-4">
+              <CardHeader>
+                <CardTitle>Progress Overview</CardTitle>
+                <CardDescription>Your progress at a glance:</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <p>Questions Asked: {questionHistory.length}</p>
+                  <p>Estimated Mastery: Proficient</p>
+                </div>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={progressData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="questions" stroke="#8884d8" activeDot={{ r: 8 }} />
+                    <Line type="monotone" dataKey="mastery" stroke="#82ca9d" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
     </div>
   );
 }
