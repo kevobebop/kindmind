@@ -185,7 +185,27 @@ export default function Home() {
        <MoodSelector onSelectMood={handleMoodSelect} />
 
       <Textarea value={question} onChange={handleQuestionChange} placeholder="Type your question here..." className="mb-2" />
-      <Input type="file" accept="image/*" onChange={handleImageChange} className="mb-2" />
+       <label style={{ cursor: 'pointer' }} className="mb-2">
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                // TODO: Replace this with your upload logic
+                console.log("Uploading image:", file);
+                const reader = new FileReader();
+                  reader.onloadend = () => {
+                  setImageUrl(reader.result as string);
+                };
+                reader.readAsDataURL(file);
+              }
+            }}
+            style={{ display: 'none' }}
+          />
+          <span role="img" aria-label="camera">📷</span> {/* Replace with Camera Icon if you want */}
+        </label>
 
       <Button onClick={handleSubmit} disabled={loading} className="mb-2">{loading ? 'Thinking...' : 'Ask Orbii'}</Button>
        <Button
@@ -238,4 +258,3 @@ export default function Home() {
     </div>
   );
 }
-
