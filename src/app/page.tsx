@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { generateHomeworkAnswer, GenerateHomeworkAnswerOutput } from '@/ai/flows/generate-homework-answer';
+import {
+  generateHomeworkAnswer,
+  GenerateHomeworkAnswerOutput,
+} from '@/ai/flows/generate-homework-answer';
 import { summarizeAnswer } from '@/ai/flows/summarize-answer-for-clarity';
 import { processImageQuestion } from '@/ai/flows/process-image-question';
 import { asdTutor, AsdTutorOutput } from '@/ai/flows/asd-tutor-flow';
-import { checkUnderstanding, CheckUnderstandingOutput } from '@/ai/flows/check-understanding';
-import { generateMiniQuiz, GenerateMiniQuizOutput } from '@/ai/flows/generate-mini-quiz';
-import { getLearningStyle, GetLearningStyleOutput } from '@/ai/flows/get-learning-style';
-import { generateProgressReport, GenerateProgressReportOutput } from '@/ai/flows/generate-progress-report';
+import { checkUnderstanding } from '@/ai/flows/check-understanding';
+import { generateMiniQuiz } from '@/ai/flows/generate-mini-quiz';
+import { getLearningStyle } from '@/ai/flows/get-learning-style';
+import { generateProgressReport } from '@/ai/flows/generate-progress-report';
 import {
   Card,
   CardContent,
@@ -58,7 +61,8 @@ export default function Home() {
   const [asdAnswer, setAsdAnswer] = useState<AsdTutorOutput | null>(null);
   const [topic, setTopic] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
-  const [currentMood, setCurrentMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
+   const [currentMood, setCurrentMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
+
 
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
@@ -178,7 +182,7 @@ export default function Home() {
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-secondary px-4">
       <h1 className="text-3xl font-bold mb-4">Welcome to Kind Mind and Learning</h1>
 
-      <MoodSelector onSelectMood={handleMoodSelect} />
+       <MoodSelector onSelectMood={handleMoodSelect} />
 
       <Textarea value={question} onChange={handleQuestionChange} placeholder="Type your question here..." className="mb-2" />
       <Input type="file" accept="image/*" onChange={handleImageChange} className="mb-2" />
@@ -230,29 +234,8 @@ export default function Home() {
           </CardHeader>
         </Card>
       )}
-       <Card className="w-full max-w-2xl mt-4">
-              <CardHeader>
-                <CardTitle>Progress Overview</CardTitle>
-                <CardDescription>Your progress at a glance:</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4">
-                  <p>Questions Asked: {questionHistory.length}</p>
-                  <p>Estimated Mastery: Proficient</p>
-                </div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={progressData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="questions" stroke="#8884d8" activeDot={{ r: 8 }} />
-                    <Line type="monotone" dataKey="mastery" stroke="#82ca9d" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+      
     </div>
   );
 }
+
