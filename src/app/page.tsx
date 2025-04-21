@@ -12,13 +12,6 @@ import { checkUnderstanding } from '@/ai/flows/check-understanding';
 import { generateMiniQuiz } from '@/ai/flows/generate-mini-quiz';
 import { getLearningStyle } from '@/ai/flows/get-learning-style';
 import { generateProgressReport } from '@/ai/flows/generate-progress-report';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -222,12 +215,12 @@ export default function Home() {
       </Button>
 
       {answer && (
-        <Card className="w-full max-w-2xl">
-          <CardHeader>
-            <CardTitle>Answer</CardTitle>
-            <CardDescription>{answer.answer}</CardDescription>
-          </CardHeader>
-        </Card>
+       <div className="w-full max-w-2xl rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="flex flex-col space-y-1.5 p-6">
+          <div className="text-2xl font-semibold leading-none tracking-tight">Answer</div>
+          <div className="text-sm text-muted-foreground">{answer.answer}</div>
+        </div>
+      </div>
       )}
 
       <div className="grid grid-cols-2 gap-2 mt-4">
@@ -238,23 +231,24 @@ export default function Home() {
       </div>
 
       {progressReport && (
-        <Card className="w-full max-w-2xl mt-4">
-          <CardHeader>
-            <CardTitle>Progress Report</CardTitle>
-            <CardDescription>{progressReport}</CardDescription>
-          </CardHeader>
-        </Card>
+       <div className="w-full max-w-2xl mt-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="flex flex-col space-y-1.5 p-6">
+          <div className="text-2xl font-semibold leading-none tracking-tight">Progress Report</div>
+          <div className="text-sm text-muted-foreground">{progressReport}</div>
+        </div>
+      </div>
       )}
 
       {asdAnswer && (
-        <Card className="w-full max-w-2xl mt-4">
-          <CardHeader>
-            <CardTitle>ASD-Tailored Answer</CardTitle>
-            <CardDescription>{asdAnswer.answer}</CardDescription>
-          </CardHeader>
-        </Card>
+        <div className="w-full max-w-2xl mt-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="flex flex-col space-y-1.5 p-6">
+          <div className="text-2xl font-semibold leading-none tracking-tight">ASD-Tailored Answer</div>
+          <div className="text-sm text-muted-foreground">{asdAnswer.answer}</div>
+        </div>
+      </div>
       )}
       
     </div>
   );
 }
+
