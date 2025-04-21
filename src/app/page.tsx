@@ -28,21 +28,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { MoodSelector } from '@/components/mood-selector';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const imageStyle = {
   maxWidth: '100%',
   maxHeight: '300px',
   objectFit: 'contain',
 };
-
-const progressData = [
-  { name: 'Week 1', questions: 20, mastery: 0.5 },
-  { name: 'Week 2', questions: 25, mastery: 0.6 },
-  { name: 'Week 3', questions: 30, mastery: 0.7 },
-  { name: 'Week 4', questions: 35, mastery: 0.8 },
-];
 
 export default function Home() {
   const [question, setQuestion] = useState('');
@@ -61,40 +52,6 @@ export default function Home() {
   const [asdAnswer, setAsdAnswer] = useState<AsdTutorOutput | null>(null);
   const [topic, setTopic] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
-   const [currentMood, setCurrentMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
-
-
-  const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition =
-        window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-      if (SpeechRecognition) {
-        const recog = new SpeechRecognition();
-        recog.continuous = false;
-        recog.interimResults = false;
-        recog.lang = 'en-US';
-
-        recog.onresult = (event: SpeechRecognitionEvent) => {
-          const transcript = event.results[0][0].transcript;
-          setQuestion(transcript);
-          toast({ title: 'Voice Input Received', description: transcript });
-          setIsListening(false);
-        };
-
-        recog.onerror = (e) => {
-          toast({ title: 'Voice Error', description: e.error });
-          setIsListening(false);
-        };
-
-        setRecognition(recog);
-      }
-    }
-  }, [toast]);
-
 
   const handleQuestionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setQuestion(e.target.value);
@@ -149,85 +106,41 @@ export default function Home() {
   const handleCheckUnderstanding = async () => {
     if (!answer?.answer) return;
     const res = await checkUnderstanding({ answer: answer.answer });
-    toast({ title: 'Orbii says:', description: res.followUpQuestion });
+    toast({ title: 'Orbii says:', description: res.response });
   };
 
   const handleMiniQuiz = async () => {
     const res = await generateMiniQuiz({ topic });
-    toast({ title: 'Mini Quiz', description: JSON.stringify(res.questions, null, 2) });
+    toast({ title: 'Mini Quiz', description: res.quiz.join('\n') });
   };
 
   const handleProgressReport = async () => {
-    const sessions = questionHistory.map(item => ({
-      topic: topic,
-      successLevel: 0.75, // Dummy success level
-      notes: `Question: ${item.question}, Answer: ${item.answer.answer}`,
-    }));
-    const res = await generateProgressReport({ sessions });
+    const res = await generateProgressReport({ history: questionHistory });
     setProgressReport(res.report);
     toast({ title: 'Progress Report Generated', description: 'Check your progress summary below.' });
   };
 
   const handleGetLearningStyle = async () => {
-    const res = await getLearningStyle({ options: ['Show me with pictures', 'Explain it with steps', 'Talk it through with me', 'Give me a practice problem'] });
-    toast({ title: 'Preferred Learning Style', description: res.selectedStyle });
-  };
-
-  const handleMoodSelect = (mood: 'happy' | 'neutral' | 'sad') => {
-    console.log(`Mood selected: ${mood}`);
-    setCurrentMood(mood);
+    const res = await getLearningStyle({ studentName: 'Kevin' });
+    toast({ title: 'Preferred Learning Style', description: res.style });
   };
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-secondary px-4">
-      <h1 className="text-3xl font-bold mb-4">Welcome to Kind Mind Learning</h1>
-
-       <MoodSelector onSelectMood={handleMoodSelect} />
+      <h1 className="text-3xl font-bold mb-4">Welcome to Orbii's AI Tutor</h1>
 
       <Textarea value={question} onChange={handleQuestionChange} placeholder="Type your question here..." className="mb-2" />
-       <label style={{ cursor: 'pointer' }} className="mb-2">
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                // TODO: Replace this with your upload logic
-                console.log("Uploading image:", file);
-                const reader = new FileReader();
-                  reader.onloadend = () => {
-                  setImageUrl(reader.result as string);
-                };
-                reader.readAsDataURL(file);
-              }
-            }}
-            style={{ display: 'none' }}
-          />
-          <span role="img" aria-label="camera">📷</span> {/* Replace with Camera Icon if you want */}
-        </label>
+      <Input type="file" accept="image/*" onChange={handleImageChange} className="mb-2" />
 
       <Button onClick={handleSubmit} disabled={loading} className="mb-2">{loading ? 'Thinking...' : 'Ask Orbii'}</Button>
-       <Button
-        onClick={() => {
-          if (recognition && !isListening) {
-            setIsListening(true);
-            recognition.start();
-          }
-        }}
-        disabled={isListening}
-        variant="secondary"
-      >
-        🎤 Speak to Orbii
-      </Button>
 
       {answer && (
-       <div className="w-full max-w-2xl rounded-lg border bg-card text-card-foreground shadow-sm">
-        <div className="flex flex-col space-y-1.5 p-6">
-          <div className="text-2xl font-semibold leading-none tracking-tight">Answer</div>
-          <div className="text-sm text-muted-foreground">{answer.answer}</div>
-        </div>
-      </div>
+        <Card className="w-full max-w-2xl">
+          <CardHeader>
+            <CardTitle>Answer</CardTitle>
+            <CardDescription>{answer.answer}</CardDescription>
+          </CardHeader>
+        </Card>
       )}
 
       <div className="grid grid-cols-2 gap-2 mt-4">
@@ -238,24 +151,22 @@ export default function Home() {
       </div>
 
       {progressReport && (
-       <div className="w-full max-w-2xl mt-4 rounded-lg border bg-card text-card-foreground shadow-sm">
-        <div className="flex flex-col space-y-1.5 p-6">
-          <div className="text-2xl font-semibold leading-none tracking-tight">Progress Report</div>
-          <div className="text-sm text-muted-foreground">{progressReport}</div>
-        </div>
-      </div>
+        <Card className="w-full max-w-2xl mt-4">
+          <CardHeader>
+            <CardTitle>Progress Report</CardTitle>
+            <CardDescription>{progressReport}</CardDescription>
+          </CardHeader>
+        </Card>
       )}
 
       {asdAnswer && (
-        <div className="w-full max-w-2xl mt-4 rounded-lg border bg-card text-card-foreground shadow-sm">
-        <div className="flex flex-col space-y-1.5 p-6">
-          <div className="text-2xl font-semibold leading-none tracking-tight">ASD-Tailored Answer</div>
-          <div className="text-sm text-muted-foreground">{asdAnswer.answer}</div>
-        </div>
-      </div>
+        <Card className="w-full max-w-2xl mt-4">
+          <CardHeader>
+            <CardTitle>ASD-Tailored Answer</CardTitle>
+            <CardDescription>{asdAnswer.answer}</CardDescription>
+          </CardHeader>
+        </Card>
       )}
-      
     </div>
   );
 }
-
