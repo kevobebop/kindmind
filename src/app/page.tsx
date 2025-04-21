@@ -12,6 +12,13 @@ import { checkUnderstanding } from '@/ai/flows/check-understanding';
 import { generateMiniQuiz } from '@/ai/flows/generate-mini-quiz';
 import { getLearningStyle } from '@/ai/flows/get-learning-style';
 import { generateProgressReport } from '@/ai/flows/generate-progress-report';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -173,7 +180,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-secondary px-4">
-      <h1 className="text-3xl font-bold mb-4">Welcome to Kind Mind and Learning</h1>
+      <h1 className="text-3xl font-bold mb-4">Welcome to Kind Mind Learning</h1>
 
        <MoodSelector onSelectMood={handleMoodSelect} />
 
