@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { MoodSelector } from "@/components/mood-selector";
 
 const imageStyle = {
   maxWidth: '100%',
@@ -52,6 +53,14 @@ export default function Home() {
   const [asdAnswer, setAsdAnswer] = useState<AsdTutorOutput | null>(null);
   const [topic, setTopic] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [userMood, setUserMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
+
+  // State + useEffect (Near Top of Home Component)
+  const [isListening, setIsListening] = useState(false);
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [hasMicrophonePermission, setHasMicrophonePermission] = useState<boolean | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleQuestionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setQuestion(e.target.value);
@@ -66,6 +75,11 @@ export default function Home() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleMoodSelect = (mood: 'happy' | 'neutral' | 'sad') => {
+    setUserMood(mood);
+    toast({ title: 'Mood Selected', description: `You are feeling ${mood}.` });
   };
 
   const handleSubmit = useCallback(async () => {
@@ -105,29 +119,98 @@ export default function Home() {
 
   const handleCheckUnderstanding = async () => {
     if (!answer?.answer) return;
-    const res = await checkUnderstanding({ answer: answer.answer });
-    toast({ title: 'Orbii says:', description: res.response });
+    const res = await checkUnderstanding({ answer: answer.answer, userMood: userMood });
+    toast({ title: 'Orbii says:', description: res.followUpQuestion });
   };
 
   const handleMiniQuiz = async () => {
     const res = await generateMiniQuiz({ topic });
-    toast({ title: 'Mini Quiz', description: res.quiz.join('\n') });
+    toast({ title: 'Mini Quiz', description: JSON.stringify(res.questions) });
   };
 
   const handleProgressReport = async () => {
-    const res = await generateProgressReport({ history: questionHistory });
+    const res = await generateProgressReport({ sessions: questionHistory.map(s => ({ topic: s.question, successLevel: 0.75, notes: s.answer.answer })) });
     setProgressReport(res.report);
     toast({ title: 'Progress Report Generated', description: 'Check your progress summary below.' });
   };
 
   const handleGetLearningStyle = async () => {
-    const res = await getLearningStyle({ studentName: 'Kevin' });
-    toast({ title: 'Preferred Learning Style', description: res.style });
+    const res = await getLearningStyle({ options: ['Show me with pictures', 'Explain it with steps', 'Talk it through with me', 'Give me a practice problem'] });
+    toast({ title: 'Preferred Learning Style', description: res.selectedStyle });
   };
+
+   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition =
+        window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+      if (SpeechRecognition) {
+        const recog = new SpeechRecognition();
+        recog.continuous = false;
+        recog.interimResults = false;
+        recog.lang = 'en-US';
+
+        recog.onresult = (event: SpeechRecognitionEvent) => {
+          const transcript = event.results[0][0].transcript;
+          setQuestion(transcript);
+          toast({ title: 'Voice Input Received', description: transcript });
+          setIsListening(false);
+        };
+
+        recog.onerror = (e) => {
+          toast({ title: 'Voice Error', description: e.error });
+          setIsListening(false);
+        };
+
+        setRecognition(recog);
+      }
+    }
+  }, [toast]);
+
+    useEffect(() => {
+    const getCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({video: true});
+        setHasCameraPermission(true);
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this app. To use camera, the site must be served over HTTPS or localhost.',
+        });
+      }
+    };
+
+    const getMicrophonePermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+        setHasMicrophonePermission(true);
+      } catch (error) {
+        console.error('Error accessing microphone:', error);
+        setHasMicrophonePermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Microphone Access Denied',
+          description: 'Please enable microphone permissions in your browser settings to use voice chat.',
+        });
+      }
+    };
+
+    getCameraPermission();
+    getMicrophonePermission();
+  }, [toast]);
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-secondary px-4">
       <h1 className="text-3xl font-bold mb-4">Welcome to Orbii's AI Tutor</h1>
+
+      <MoodSelector onSelectMood={handleMoodSelect} />
 
       <Textarea value={question} onChange={handleQuestionChange} placeholder="Type your question here..." className="mb-2" />
       <label style={{ cursor: 'pointer' }} className="mb-2">
@@ -149,6 +232,25 @@ export default function Home() {
       <Input type="file" accept="image/*" onChange={handleImageChange} className="mb-2" />
 
       <Button onClick={handleSubmit} disabled={loading} className="mb-2">{loading ? 'Thinking...' : 'Ask Orbii'}</Button>
+         <Button
+          onClick={() => {
+            if (recognition && !isListening && hasMicrophonePermission) {
+              setIsListening(true);
+              recognition.start();
+            } else if (!hasMicrophonePermission) {
+              toast({
+                variant: 'destructive',
+                title: 'Microphone Access Denied',
+                description: 'Please enable microphone permissions in your browser settings to use voice input.',
+              });
+            }
+          }}
+          disabled={isListening || !hasMicrophonePermission}
+          variant="secondary"
+        >
+          <Speech className="mr-2 h-4 w-4" />
+          {isListening ? 'Listening...' : 'Speak to Orbii'}
+        </Button>
 
       {answer && (
         <Card className="w-full max-w-2xl">
@@ -183,6 +285,15 @@ export default function Home() {
           </CardHeader>
         </Card>
       )}
+         { !(hasCameraPermission) && (
+            <Alert variant="destructive">
+                      <AlertTitle>Camera Access Required</AlertTitle>
+                      <AlertDescription>
+                        Please allow camera access to use this feature.
+                      </AlertDescription>
+              </Alert>
+        )
+        }
     </div>
   );
 }
