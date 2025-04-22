@@ -28,8 +28,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { MoodSelector } from "@/components/mood-selector";
 
 const imageStyle = {
   maxWidth: '100%',
@@ -54,15 +52,6 @@ export default function Home() {
   const [asdAnswer, setAsdAnswer] = useState<AsdTutorOutput | null>(null);
   const [topic, setTopic] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
-
-  // Mood Tracking
-  const [userMood, setUserMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
-
-  const handleMoodSelect = (mood: 'happy' | 'neutral' | 'sad') => {
-    setUserMood(mood);
-    toast({ title: 'Mood Selected', description: `You are feeling ${mood}.` });
-  };
-
 
   const handleQuestionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setQuestion(e.target.value);
@@ -116,41 +105,32 @@ export default function Home() {
 
   const handleCheckUnderstanding = async () => {
     if (!answer?.answer) return;
-    const res = await checkUnderstanding({ answer: answer.answer, userMood });
-    toast({ title: 'Orbii says:', description: res.followUpQuestion });
+    const res = await checkUnderstanding({ answer: answer.answer });
+    toast({ title: 'Orbii says:', description: res.response });
   };
 
   const handleMiniQuiz = async () => {
     const res = await generateMiniQuiz({ topic });
-    //toast({ title: 'Mini Quiz', description: res.questions.join('\n') });
+    toast({ title: 'Mini Quiz', description: res.quiz.join('\n') });
   };
 
   const handleProgressReport = async () => {
-    const res = await generateProgressReport({ sessions: questionHistory.map(s => ({ topic: s.question, successLevel: 0.8 })) });
+    const res = await generateProgressReport({ history: questionHistory });
     setProgressReport(res.report);
     toast({ title: 'Progress Report Generated', description: 'Check your progress summary below.' });
   };
 
   const handleGetLearningStyle = async () => {
-    const res = await getLearningStyle({ options: ['Show me with pictures', 'Explain it with steps', 'Talk it through with me', 'Give me a practice problem'] });
-    toast({ title: 'Preferred Learning Style', description: res.selectedStyle });
+    const res = await getLearningStyle({ studentName: 'Kevin' });
+    toast({ title: 'Preferred Learning Style', description: res.style });
   };
-
-    // Progress Chart Data (Dummy Data for now)
-    const progressData = [
-      { name: 'Week 1', questions: 10, mastery: 0.6 },
-      { name: 'Week 2', questions: 12, mastery: 0.7 },
-      { name: 'Week 3', questions: 15, mastery: 0.8 },
-      { name: 'Week 4', questions: 18, mastery: 0.9 },
-    ];
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-secondary px-4">
       <h1 className="text-3xl font-bold mb-4">Welcome to Orbii's AI Tutor</h1>
-       <MoodSelector onSelectMood={handleMoodSelect} />
 
       <Textarea value={question} onChange={handleQuestionChange} placeholder="Type your question here..." className="mb-2" />
-       <label style={{ cursor: 'pointer' }} className="mb-2">
+      <label style={{ cursor: 'pointer' }} className="mb-2">
           <input
             type="file"
             accept="image/*"
@@ -203,34 +183,6 @@ export default function Home() {
           </CardHeader>
         </Card>
       )}
-
-      {/* Progress Overview Card */}
-      <Card className="w-full max-w-2xl mt-4">
-        <CardHeader>
-          <CardTitle>Progress Overview</CardTitle>
-          <CardDescription>Your learning journey so far</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4">
-            <strong>Questions Asked:</strong> {questionHistory.length}
-          </div>
-          <div className="mb-4">
-            <strong>Estimated Mastery:</strong> Proficient
-          </div>
-          {/* Progress Chart */}
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={progressData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="questions" stroke="#8884d8" activeDot={{ r: 8 }} />
-              <Line type="monotone" dataKey="mastery" stroke="#82ca9d" />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
     </div>
   );
 }
