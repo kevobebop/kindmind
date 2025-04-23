@@ -67,4 +67,3 @@ const generateMiniQuizFlow = ai.defineFlow<
   const {output} = await prompt(input);
   return output!;
 });
-
