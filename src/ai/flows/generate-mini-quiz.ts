@@ -5,7 +5,7 @@
  *
  * - generateMiniQuiz - A function that generates a mini-quiz.
  * - GenerateMiniQuizInput - The input type for the generateMiniQuiz function.
- * - GenerateMiniQuizOutput - The return type for the generateMiniQuiz function.
+ * - GenerateMiniQuizOutput - The return type for the GenerateMiniQuiz function.
  */
 
 import {ai} from '@/ai/ai-instance';
@@ -28,7 +28,6 @@ export async function generateMiniQuiz(input: GenerateMiniQuizInput): Promise<Ge
 
 const prompt = ai.definePrompt({
   name: 'generateMiniQuizPrompt',
-  model: 'gemini-1.5-pro',
   input: {
     schema: z.object({
       topic: z.string().describe('The topic for the quiz.'),
@@ -68,3 +67,4 @@ const generateMiniQuizFlow = ai.defineFlow<
   const {output} = await prompt(input);
   return output!;
 });
+
