@@ -8,5 +8,5 @@ export const ai = genkit({
       apiKey: process.env.GOOGLE_GENAI_API_KEY,
     }),
   ],
-  model: 'gemini-pro', // 👈 add this line
+  model: 'gemini-1.5-pro-002', //  Gemini 1.5 Pro
 });
