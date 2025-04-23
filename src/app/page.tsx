@@ -54,6 +54,7 @@ export default function Home() {
   const [topic, setTopic] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [userMood, setUserMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
+  const [orbiiResponse, setOrbiiResponse] = useState(''); // Orbii's Response State
 
   // State + useEffect (Near Top of Home Component)
   const [isListening, setIsListening] = useState(false);
@@ -110,6 +111,7 @@ export default function Home() {
 
       const asdResponse = await asdTutor({ question, topic, additionalNotes });
       setAsdAnswer(asdResponse);
+      setOrbiiResponse(generatedAnswer.answer); //Sets oribii response
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to generate answer.' });
     } finally {
@@ -251,6 +253,20 @@ export default function Home() {
           <Speech className="mr-2 h-4 w-4" />
           {isListening ? 'Listening...' : 'Speak to Orbii'}
         </Button>
+
+       {/* Orbii Mascot with Speech Bubble */}
+      <div className="relative mt-4">
+        <img
+          src="https://picsum.photos/100/100" // Replace with your mascot image URL
+          alt="Orbii Mascot"
+          className="w-24 h-24 rounded-full"
+        />
+        {orbiiResponse && (
+          <div className="absolute top-0 left-24 p-2 bg-white rounded-lg shadow-md">
+            {orbiiResponse}
+          </div>
+        )}
+      </div>
 
       {answer && (
         <Card className="w-full max-w-2xl">
