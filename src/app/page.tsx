@@ -30,6 +30,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { MoodSelector } from "@/components/mood-selector";
 
+// TypeScript fix for browser-only types
+type SpeechRecognitionErrorEvent = Event & { error: string };
+
 const imageStyle = {
   maxWidth: '100%',
   maxHeight: '300px',
@@ -49,16 +52,15 @@ export default function Home() {
   const [lessonPlan, setLessonPlan] = useState('');
   const [showLessonPlan, setShowLessonPlan] = useState(false);
   const [progressReport, setProgressReport] = useState('');
-  const [isSubscribed, setIsSubscribed] = useState(true); // Assume subscribed for testing
+  const [isSubscribed, setIsSubscribed] = useState(true);
   const [asdAnswer, setAsdAnswer] = useState<AsdTutorOutput | null>(null);
   const [topic, setTopic] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [userMood, setUserMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
-  const [orbiiResponse, setOrbiiResponse] = useState(''); // Orbii's Response State
+  const [orbiiResponse, setOrbiiResponse] = useState('');
 
-  // State + useEffect (Near Top of Home Component)
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [recognition, setRecognition] = useState<any>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [hasMicrophonePermission, setHasMicrophonePermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -111,7 +113,7 @@ export default function Home() {
 
       const asdResponse = await asdTutor({ question, topic, additionalNotes });
       setAsdAnswer(asdResponse);
-      setOrbiiResponse(generatedAnswer.answer); //Sets oribii response
+      setOrbiiResponse(generatedAnswer.answer);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to generate answer.' });
     } finally {
@@ -141,10 +143,10 @@ export default function Home() {
     toast({ title: 'Preferred Learning Style', description: res.selectedStyle });
   };
 
-   useEffect(() => {
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const SpeechRecognition =
-        window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
       if (SpeechRecognition) {
         const recog = new SpeechRecognition();
@@ -152,14 +154,14 @@ export default function Home() {
         recog.interimResults = false;
         recog.lang = 'en-US';
 
-        recog.onresult = (event: SpeechRecognitionEvent) => {
+        recog.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
           setQuestion(transcript);
           toast({ title: 'Voice Input Received', description: transcript });
           setIsListening(false);
         };
 
-        recog.onerror = (e) => {
+        recog.onerror = (e: SpeechRecognitionErrorEvent) => {
           toast({ title: 'Voice Error', description: e.error });
           setIsListening(false);
         };
@@ -169,12 +171,11 @@ export default function Home() {
     }
   }, [toast]);
 
-    useEffect(() => {
+  useEffect(() => {
     const getCameraPermission = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({video: true});
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         setHasCameraPermission(true);
-
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
@@ -191,7 +192,7 @@ export default function Home() {
 
     const getMicrophonePermission = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         setHasMicrophonePermission(true);
       } catch (error) {
         console.error('Error accessing microphone:', error);
@@ -215,49 +216,32 @@ export default function Home() {
       <MoodSelector onSelectMood={handleMoodSelect} />
 
       <Textarea value={question} onChange={handleQuestionChange} placeholder="Type your question here..." className="mb-2" />
-      <label style={{ cursor: 'pointer' }} className="mb-2">
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                // TODO: Replace this with your upload logic
-                console.log("Uploading image:", file);
-              }
-            }}
-            style={{ display: 'none' }}
-          />
-          <span role="img" aria-label="camera">📷</span> {/* Replace with Camera Icon if you want */}
-        </label>
       <Input type="file" accept="image/*" onChange={handleImageChange} className="mb-2" />
 
       <Button onClick={handleSubmit} disabled={loading} className="mb-2">{loading ? 'Thinking...' : 'Ask Orbii'}</Button>
-         <Button
-          onClick={() => {
-            if (recognition && !isListening && hasMicrophonePermission) {
-              setIsListening(true);
-              recognition.start();
-            } else if (!hasMicrophonePermission) {
-              toast({
-                variant: 'destructive',
-                title: 'Microphone Access Denied',
-                description: 'Please enable microphone permissions in your browser settings to use voice input.',
-              });
-            }
-          }}
-          disabled={isListening || !hasMicrophonePermission}
-          variant="secondary"
-        >
-          <Speech className="mr-2 h-4 w-4" />
-          {isListening ? 'Listening...' : 'Speak to Orbii'}
-        </Button>
+      <Button
+        onClick={() => {
+          if (recognition && !isListening && hasMicrophonePermission) {
+            setIsListening(true);
+            recognition.start();
+          } else if (!hasMicrophonePermission) {
+            toast({
+              variant: 'destructive',
+              title: 'Microphone Access Denied',
+              description: 'Please enable microphone permissions in your browser settings to use voice input.',
+            });
+          }
+        }}
+        disabled={isListening || !hasMicrophonePermission}
+        variant="secondary"
+      >
+        <Speech className="mr-2 h-4 w-4" />
+        {isListening ? 'Listening...' : 'Speak to Orbii'}
+      </Button>
 
-       {/* Orbii Mascot with Speech Bubble */}
       <div className="relative mt-4">
         <img
-          src="https://picsum.photos/100/100" // Replace with your mascot image URL
+          src="https://picsum.photos/100/100"
           alt="Orbii Mascot"
           className="w-24 h-24 rounded-full"
         />
@@ -301,15 +285,15 @@ export default function Home() {
           </CardHeader>
         </Card>
       )}
-         { !(hasCameraPermission) && (
-            <Alert variant="destructive">
-                      <AlertTitle>Camera Access Required</AlertTitle>
-                      <AlertDescription>
-                        Please allow camera access to use this feature.
-                      </AlertDescription>
-              </Alert>
-        )
-        }
+
+      {!hasCameraPermission && (
+        <Alert variant="destructive">
+          <AlertTitle>Camera Access Required</AlertTitle>
+          <AlertDescription>
+            Please allow camera access to use this feature.
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 }

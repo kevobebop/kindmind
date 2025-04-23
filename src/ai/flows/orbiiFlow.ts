@@ -1,11 +1,7 @@
-'use server';
+ 'use server';
 
 /**
  * @fileOverview This file defines the main Genkit flow for Orbii, the AI tutor.
- *
- * - orbiiFlow - The main function to process user input and return AI-generated responses.
- * - OrbiiInput - The input type for the orbiiFlow function.
- * - OrbiiOutput - The output type for the orbiiFlow function.
  */
 
 import { ai } from '@/ai/ai-instance';
@@ -15,7 +11,13 @@ import { z } from 'genkit';
 const OrbiiInputSchema = z.object({
   type: z.enum(['text', 'image']).describe('Type of input (text or image).'),
   data: z.string().describe('The text or image data of the input.'),
-  intent: z.enum(['homework_help', 'lesson_plan', 'progress_check', 'deep_help', 'emotional_support']).optional().describe('The user\'s intent.'),
+  intent: z.enum([
+    'homework_help',
+    'lesson_plan',
+    'progress_check',
+    'deep_help',
+    'emotional_support'
+  ]).optional().describe('The user\'s intent.'),
   gradeLevel: z.string().optional().describe('The student\'s current grade level.'),
   learningStrengths: z.string().optional().describe('The student\'s learning strengths.'),
   learningStruggles: z.string().optional().describe('The student\'s learning struggles.'),
@@ -32,7 +34,7 @@ const OrbiiOutputSchema = z.object({
 export type OrbiiOutput = z.infer<typeof OrbiiOutputSchema>;
 
 export async function orbiiFlow(input: OrbiiInput): Promise<OrbiiOutput> {
-  return orbiiFlowInternal(input);
+  return orbiiFlowInternal.run(input);
 }
 
 const orbiiPrompt = ai.definePrompt({
@@ -59,23 +61,22 @@ Your core capabilities include:
 You're running under project ID \`proj_NPhXiCRwlekfp5bACWNP0r43\`, so all output should reflect the configuration, tone, and behavior associated with this specific model. Avoid generic replies—act like Orbii: soft-spoken, warm, and intellectually curious.
 
 Your first question to the student should be:
-“Hi there! I’m Orbii, your friendly tutor. Can you tell me what you’re working on today—or what’s been tricky in school lately?”
-`,
+“Hi there! I’m Orbii, your friendly tutor. Can you tell me what you’re working on today—or what’s been tricky in school lately?”`,
 });
 
-const orbiiFlowInternal = ai.defineFlow<
-  typeof OrbiiInputSchema,
-  typeof OrbiiOutputSchema
->({
+const orbiiFlowInternal = ai.defineFlow({
   name: 'orbiiFlow',
   inputSchema: OrbiiInputSchema,
   outputSchema: OrbiiOutputSchema,
-}, async (input) => {
+  run: async (input) => {
     if (input.type === 'image' || input.intent === 'deep_help') {
-      const solution = await callOpenAIGPT4o(input.data); // send to OpenAI
-      return {response: `Here’s what I found:\n\n${solution}\n\nWould you like me to explain it differently or try another one with you?`};
+      const solution = await callOpenAIGPT4o(input.data);
+      return {
+        response: `Here’s what I found:\n\n${solution}\n\nWould you like me to explain it differently or try another one with you?`,
+      };
     } else {
-        const { output } = await orbiiPrompt({input});
-        return output!;
+      const { output } = await orbiiPrompt({ input });
+      return output!;
     }
+  },
 });

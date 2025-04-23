@@ -18,10 +18,7 @@ const GenerateMiniQuizInputSchema = z.object({
 export type GenerateMiniQuizInput = z.infer<typeof GenerateMiniQuizInputSchema>;
 
 const GenerateMiniQuizOutputSchema = z.object({
-  questions: z.array(z.object({
-    question: z.string().describe('The quiz question.'),
-    answer: z.string().describe('The answer to the quiz question.'),
-  })).describe('An array of quiz questions and answers.'),
+  quiz: z.array(z.string()).describe('An array of quiz questions and answers.'),
 });
 export type GenerateMiniQuizOutput = z.infer<typeof GenerateMiniQuizOutputSchema>;
 
@@ -31,6 +28,7 @@ export async function generateMiniQuiz(input: GenerateMiniQuizInput): Promise<Ge
 
 const prompt = ai.definePrompt({
   name: 'generateMiniQuizPrompt',
+  model: 'gemini-1.5-pro',
   input: {
     schema: z.object({
       topic: z.string().describe('The topic for the quiz.'),
@@ -39,22 +37,24 @@ const prompt = ai.definePrompt({
   },
   output: {
     schema: z.object({
-      questions: z.array(z.object({
-        question: z.string().describe('The quiz question.'),
-        answer: z.string().describe('The answer to the quiz question.'),
-      })).describe('An array of quiz questions and answers.'),
+      quiz: z.array(z.string()).describe('An array of quiz questions and answers.'),
     }),
   },
   prompt: `Create a short quiz on this topic: {{topic}}
 
+The quiz should have three questions.
 Keep the language simple and friendly.
 
-Output as JSON:
-[
-  { "question": "Question 1?", "answer": "Answer" },
-  { "question": "Question 2?", "answer": "Answer" },
-  { "question": "Question 3?", "answer": "Answer" }
-]`,
+Difficulty: {{difficulty}}
+
+Output as a numbered list, like this:
+1. Question 1?
+Answer:
+2. Question 2?
+Answer:
+3. Question 3?
+Answer:
+`,
 });
 
 const generateMiniQuizFlow = ai.defineFlow<

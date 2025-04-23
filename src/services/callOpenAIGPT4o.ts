@@ -1,7 +1,9 @@
 
 import { OpenAI } from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY ?? '', // fallback for TS safety
+});
 
 export async function callOpenAIGPT4o(input: string): Promise<string | undefined> {
   try {
@@ -11,9 +13,15 @@ export async function callOpenAIGPT4o(input: string): Promise<string | undefined
       temperature: 0.7,
     });
 
-    return completion.choices[0].message.content;
+    const content = completion.choices[0]?.message?.content ?? undefined;
+
+    return content;
   } catch (error) {
     console.error("Error calling OpenAI:", error);
-    return "I'm having trouble connecting to the AI brain right now. Please try again in a few minutes!";
+    return undefined;
   }
 }
+
+
+
+
