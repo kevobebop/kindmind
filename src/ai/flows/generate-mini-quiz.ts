@@ -28,7 +28,7 @@ export async function generateMiniQuiz(input: GenerateMiniQuizInput): Promise<Ge
 
 const prompt = ai.definePrompt({
   name: 'generateMiniQuizPrompt',
-  model: 'gemini-pro',
+  model: 'gemini-1.5-pro-002',
   input: {
     schema: z.object({
       topic: z.string().describe('The topic for the quiz.'),
