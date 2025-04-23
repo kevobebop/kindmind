@@ -29,6 +29,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { MoodSelector } from "@/components/mood-selector";
+import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // TypeScript fix for browser-only types
 type SpeechRecognitionErrorEvent = Event & { error: string };
@@ -56,7 +57,7 @@ export default function Home() {
   const [asdAnswer, setAsdAnswer] = useState<AsdTutorOutput | null>(null);
   const [topic, setTopic] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
-  const [userMood, setUserMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
+    const [userMood, setUserMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
   const [orbiiResponse, setOrbiiResponse] = useState('');
 
   const [isListening, setIsListening] = useState(false);
@@ -80,10 +81,10 @@ export default function Home() {
     }
   };
 
-  const handleMoodSelect = (mood: 'happy' | 'neutral' | 'sad') => {
-    setUserMood(mood);
-    toast({ title: 'Mood Selected', description: `You are feeling ${mood}.` });
-  };
+    const handleMoodSelect = (mood: 'happy' | 'neutral' | 'sad') => {
+        setUserMood(mood);
+        toast({ title: 'Mood Selected', description: `You are feeling ${mood}.` });
+    };
 
   const handleSubmit = useCallback(async () => {
     if (!isSubscribed) {
@@ -209,11 +210,18 @@ export default function Home() {
     getMicrophonePermission();
   }, [toast]);
 
+  const progressData = [
+    { name: 'Week 1', questions: 10, mastery: 0.6 },
+    { name: 'Week 2', questions: 12, mastery: 0.7 },
+    { name: 'Week 3', questions: 15, mastery: 0.8 },
+    { name: 'Week 4', questions: 18, mastery: 0.9 },
+  ];
+
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-secondary px-4">
       <h1 className="text-3xl font-bold mb-4">Welcome to Orbii's AI Tutor</h1>
 
-      <MoodSelector onSelectMood={handleMoodSelect} />
+       <MoodSelector onSelectMood={handleMoodSelect} />
 
       <Textarea value={question} onChange={handleQuestionChange} placeholder="Type your question here..." className="mb-2" />
       <Input type="file" accept="image/*" onChange={handleImageChange} className="mb-2" />
@@ -274,8 +282,18 @@ export default function Home() {
             <CardTitle>Progress Report</CardTitle>
             <CardDescription>{progressReport}</CardDescription>
           </CardHeader>
-        </Card>
-      )}
+          </Card>
+           )}
+              {/* Progress Chart */}
+              <LineChart width={600} height={300} data={progressData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="questions" stroke="#8884d8" activeDot={{ r: 8 }} />
+                <Line type="monotone" dataKey="mastery" stroke="#82ca9d" />
+              </LineChart>
 
       {asdAnswer && (
         <Card className="w-full max-w-2xl mt-4">
