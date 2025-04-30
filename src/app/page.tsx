@@ -55,7 +55,9 @@ export default function Home() {
   const handleMiniQuiz = async () => {
     try {
       const res = await generateMiniQuiz({ topic: 'fractions' });
-      const formatted = res.questions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n');
+      const formatted = res.quiz.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n');
+
+
       setOrbiiResponse(`Here’s your quiz:\n\n${formatted}`);
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Quiz Error', description: error.message || 'Failed to generate quiz.' });

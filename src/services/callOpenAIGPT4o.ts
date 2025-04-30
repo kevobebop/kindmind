@@ -1,5 +1,15 @@
+'use server';
 
 import { OpenAI } from "openai";
+
+console.log('Initializing OpenAI...');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
+if (!process.env.OPENAI_API_KEY) {
+  console.warn('OPENAI_API_KEY is not set. The service may not function correctly.');
+} else {
+  console.log('OPENAI_API_KEY is set.');
+}
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY ?? '', // fallback for TS safety
@@ -18,10 +28,6 @@ export async function callOpenAIGPT4o(input: string): Promise<string | undefined
     return content;
   } catch (error) {
     console.error("Error calling OpenAI:", error);
-    return undefined;
+    return "I'm having trouble connecting to the AI brain right now. Please try again in a few minutes!";
   }
 }
-
-
-
-
