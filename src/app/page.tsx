@@ -1,4 +1,3 @@
-// src/app/page.tsx
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -16,7 +15,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react'; // Import Loader2 for loading indicator
+import { Loader2 } from 'lucide-react';
+import { testGeminiModel } from '@/ai/ai-instance'; // Import the test function
 
 export default function Home() {
   const [question, setQuestion] = useState('');
@@ -30,12 +30,12 @@ export default function Home() {
 
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Please enter a question.',
-        });
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Please enter a question.',
+      });
+      return;
     }
 
     setLoading(true);
@@ -49,87 +49,108 @@ export default function Home() {
         description: 'The AI has generated an answer.',
       });
     } catch (error: any) {
-        console.error("Error generating answer:", error); // Log the full error
-        // Attempt to parse GenkitError details if possible
-        let errorMessage = 'Failed to generate answer.';
-        if (error instanceof Error && error.message.includes('GenkitError')) {
-           try {
-               // Extract the core message if it's JSON-like
-               const match = error.message.match(/GenkitError:.*?: (.*)/);
-               if (match && match[1]) {
-                   errorMessage = match[1];
-               } else {
-                   errorMessage = error.message; // Use the full message if parsing fails
-               }
-           } catch (parseError) {
-               errorMessage = error.message; // Fallback to original message
-           }
-        } else if (error instanceof Error) {
-            errorMessage = error.message;
+      console.error('Error generating answer:', error); // Log the full error
+      let errorMessage = 'Failed to generate answer.';
+        if (error instanceof Error) {
+            errorMessage = error.message; // Use the error message directly
         }
-
-        toast({
+       toast({
             variant: 'destructive',
-            title: 'Error',
+            title: 'Error Generating Answer',
             description: errorMessage,
+            // Increase duration for errors
+            duration: 9000,
         });
     } finally {
       setLoading(false);
     }
   }, [question, toast]);
 
+  // Function to test the Gemini API connection
+  const handleTestGemini = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await testGeminiModel();
+      toast({
+        title: 'Gemini API Test',
+        description: result,
+        duration: 9000, // Show longer for test results
+      });
+    } catch (error: any) {
+      console.error('Error testing Gemini:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Gemini API Test Failed',
+        description: error.message || 'An unknown error occurred.',
+        duration: 9000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-8 px-4 bg-secondary">
       <h1 className="text-3xl font-bold mb-6 text-primary">Kind Mind Learning AI Tutor</h1>
 
-        <Card className="w-full max-w-2xl mb-4">
-            <CardHeader>
-            <CardTitle>Ask Orbii a Question</CardTitle>
-            <CardDescription>Enter your question below:</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-            <Textarea
-                placeholder="Type your question here..."
-                className="w-full min-h-[100px] text-base" // Increased min-height and text size
-                value={question}
-                onChange={handleQuestionChange}
-                disabled={loading}
-            />
-            <Button
-                className="w-full bg-accent text-accent-foreground px-8 py-4 text-lg font-semibold rounded-md shadow-md hover:bg-accent/80 flex items-center justify-center" // Made button larger
-                onClick={handleSubmit}
-                disabled={loading}
-            >
-                {loading ? (
-                <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Sending...
-                </>
-                ) : (
-                'Send Question'
-                )}
-            </Button>
-            </CardContent>
+      <Card className="w-full max-w-2xl mb-4">
+        <CardHeader>
+          <CardTitle>Ask Orbii a Question</CardTitle>
+          <CardDescription>Enter your question below:</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <Textarea
+            placeholder="Type your question here... e.g., What is 2+2?"
+            className="w-full min-h-[100px] text-base"
+            value={question}
+            onChange={handleQuestionChange}
+            disabled={loading}
+          />
+          <Button
+            className="w-full bg-accent text-accent-foreground px-8 py-4 text-lg font-semibold rounded-md shadow-md hover:bg-accent/80 flex items-center justify-center"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              'Send Question'
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* AI Answer Box */}
+      {answer && (
+        <Card className="w-full max-w-2xl mt-4">
+          <CardHeader>
+            <CardTitle>AI Tutor Reply</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Using whitespace-pre-wrap to preserve formatting like line breaks */}
+            <p className="text-base whitespace-pre-wrap">{answer.answer}</p>
+          </CardContent>
         </Card>
+      )}
 
-
-        {/* AI Answer Box */}
-        {answer && (
-            <Card className="w-full max-w-2xl mt-4">
-            <CardHeader>
-                <CardTitle>AI Tutor Reply</CardTitle>
-            </CardHeader>
-            <CardContent>
-                {/* Using whitespace-pre-wrap to preserve formatting like line breaks */}
-                <p className="text-base whitespace-pre-wrap">{answer.answer}</p>
-            </CardContent>
-            </Card>
-        )}
-
-        {/* Basic Footer */}
-        <footer className="w-full max-w-2xl mt-8 text-center text-muted-foreground text-sm">
-            <p>Powered by Kind Mind Learning AI</p>
-        </footer>
+      {/* Basic Footer with Test Button */}
+      <footer className="w-full max-w-2xl mt-8 text-center text-muted-foreground text-sm">
+        <p>Powered by Kind Mind Learning AI</p>
+        {/* Add a test button */}
+        <Button
+           variant="outline"
+           size="sm"
+           onClick={handleTestGemini}
+           disabled={loading}
+           className="mt-4"
+         >
+           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+           Test Gemini API
+         </Button>
+      </footer>
     </div>
   );
 }

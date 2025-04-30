@@ -27,6 +27,9 @@ export async function generateHomeworkAnswer(input: GenerateHomeworkAnswerInput)
 
 const prompt = ai.definePrompt({
   name: 'generateHomeworkAnswerPrompt',
+  // Explicitly set the model here to ensure it's used, overriding the default if necessary.
+  // Use a model known to be available (e.g., flash, or the specific pro version like 'gemini-1.5-pro-latest').
+  model: 'gemini-1.5-flash-latest', // Explicitly set model
   input: {
     schema: z.object({
       question: z.string().describe('The homework question to be answered.'),
@@ -57,6 +60,18 @@ const generateHomeworkAnswerFlow = ai.defineFlow<
   inputSchema: GenerateHomeworkAnswerInputSchema,
   outputSchema: GenerateHomeworkAnswerOutputSchema,
 }, async (input: GenerateHomeworkAnswerInput) => {
-  const {output} = await prompt(input);
-  return output!;
+  // Add explicit error handling around the prompt call
+  try {
+    const {output} = await prompt(input);
+    if (!output) {
+        throw new Error('AI did not return a valid output.');
+    }
+    return output;
+  } catch (error: any) {
+    console.error(`Error in generateHomeworkAnswerFlow for question "${input.question}":`, error);
+     // Rethrow a more specific error or return a structured error response
+    throw new Error(`Failed to generate homework answer. ${error.message || 'Unknown error'}`);
+    // Alternatively, return a user-friendly error in the output schema if preferred:
+    // return { answer: `Sorry, I encountered an error trying to answer that: ${error.message}` };
+  }
 });

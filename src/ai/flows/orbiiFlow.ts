@@ -33,16 +33,17 @@ const OrbiiOutputSchema = z.object({
 
 export type OrbiiOutput = z.infer<typeof OrbiiOutputSchema>;
 
-export async function orbiiFlow(input: OrbiiInput): Promise<OrbiiOutput> {
+
+export async function orbiiFlow(input: OrbiiInput) {
   return orbiiFlowInternal.run(input);
 }
 
-const orbiiPrompt = ai.definePrompt({
-  name: 'orbiiPrompt',
-  input: {
-    schema: OrbiiInputSchema,
+const orbiiPrompt = ai.definePrompt("orbiiPrompt",{
+    input: {
+      schema: OrbiiInputSchema
   },
   output: {
+
     schema: OrbiiOutputSchema,
   },
   prompt: `You are Orbii, the AI tutor for the KindMind Learning app. Your purpose is to help students—especially neurodiverse learners and those with autism—understand, explore, and master academic subjects in a calm, supportive, and highly personalized way.
@@ -62,9 +63,9 @@ You're running under project ID \`proj_NPhXiCRwlekfp5bACWNP0r43\`, so all output
 
 Your first question to the student should be:
 “Hi there! I’m Orbii, your friendly tutor. Can you tell me what you’re working on today—or what’s been tricky in school lately?”`,
-});
-
+}); 
 const orbiiFlowInternal = ai.defineFlow({
+
   name: 'orbiiFlow',
   inputSchema: OrbiiInputSchema,
   outputSchema: OrbiiOutputSchema,
@@ -75,8 +76,11 @@ const orbiiFlowInternal = ai.defineFlow({
         response: `Here’s what I found:\n\n${solution}\n\nWould you like me to explain it differently or try another one with you?`,
       };
     } else {
-      const { output } = await orbiiPrompt({ input });
-      return output!;
+      const result = await ai.getPrompt('orbiiPrompt').invoke({input});
+
+      return {
+        response: result.output.response,
+      };
     }
   },
 });
