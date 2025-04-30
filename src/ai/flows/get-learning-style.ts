@@ -55,7 +55,7 @@ const getLearningStyleFlow = ai.defineFlow<
   name: 'getLearningStyleFlow',
   inputSchema: GetLearningStyleInputSchema,
   outputSchema: GetLearningStyleOutputSchema,
-}, async input => {
+}, async (input: GetLearningStyleInput) => {
   const {output} = await prompt(input);
   return output!;
 });

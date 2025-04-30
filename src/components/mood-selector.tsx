@@ -2,8 +2,6 @@
 
 import * as React from "react"
 
-import { cn } from "@/lib/utils"
-
 interface MoodSelectorProps {
   onSelectMood: (mood: 'happy' | 'neutral' | 'sad') => void;
 }

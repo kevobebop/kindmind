@@ -69,7 +69,7 @@ const checkUnderstandingFlow = ai.defineFlow<
   name: 'checkUnderstandingFlow',
   inputSchema: CheckUnderstandingInputSchema,
   outputSchema: CheckUnderstandingOutputSchema,
-}, async input => {
+}, async (input: CheckUnderstandingInput) => {
   const {output} = await prompt(input);
   return output!;
 });

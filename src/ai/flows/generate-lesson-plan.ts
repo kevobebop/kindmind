@@ -58,7 +58,7 @@ const generateLessonPlanFlow = ai.defineFlow<
   name: 'generateLessonPlanFlow',
   inputSchema: GenerateLessonPlanInputSchema,
   outputSchema: GenerateLessonPlanOutputSchema,
-}, async input => {
+}, async (input: GenerateLessonPlanInput) => {
   const {output} = await prompt(input);
   return output!;
 });

@@ -7,12 +7,10 @@ console.log('Starting KindMind AI Instance...');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 
 if (!process.env.GOOGLE_GENAI_API_KEY) {
-  console.warn('GOOGLE_GENAI_API_KEY is not set.  The app may not work correctly.');
-} else {
-  console.log('GOOGLE_GENAI_API_KEY is set.');
+  throw new Error('GOOGLE_GENAI_API_KEY is not set. The app cannot function correctly without it.');
 }
 
-export const ai = genkit({
+export const ai = process.env.GOOGLE_GENAI_API_KEY ? genkit({
   promptDir: './prompts',
   plugins: [
     googleAI({
@@ -20,6 +18,7 @@ export const ai = genkit({
     }),
   ],
   model: 'gemini-pro',
-});
+}) : undefined;
 
-console.log('KindMind AI Instance initialized.');
+
+

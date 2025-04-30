@@ -56,7 +56,7 @@ const generateHomeworkAnswerFlow = ai.defineFlow<
   name: 'generateHomeworkAnswerFlow',
   inputSchema: GenerateHomeworkAnswerInputSchema,
   outputSchema: GenerateHomeworkAnswerOutputSchema,
-}, async input => {
+}, async (input: GenerateHomeworkAnswerInput) => {
   const {output} = await prompt(input);
   return output!;
 });

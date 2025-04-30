@@ -62,7 +62,7 @@ const generateProgressReportFlow = ai.defineFlow<
   name: 'generateProgressReportFlow',
   inputSchema: GenerateProgressReportInputSchema,
   outputSchema: GenerateProgressReportOutputSchema,
-}, async input => {
+}, async (input: GenerateProgressReportInput) => {
   const {output} = await prompt(input);
   return output!;
 });

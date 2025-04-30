@@ -60,7 +60,7 @@ const trackSessionSummaryFlow = ai.defineFlow<
   name: 'trackSessionSummaryFlow',
   inputSchema: TrackSessionSummaryInputSchema,
   outputSchema: TrackSessionSummaryOutputSchema,
-}, async input => {
+}, async (input: TrackSessionSummaryInput) => {
   const {output} = await prompt(input);
   return output!;
 });

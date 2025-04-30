@@ -88,7 +88,7 @@ const asdTutorFlow = ai.defineFlow<
   name: 'asdTutorFlow',
   inputSchema: AsdTutorInputSchema,
   outputSchema: AsdTutorOutputSchema,
-}, async input => {
+}, async (input: AsdTutorInput) => {
   const {output} = await prompt(input);
   return output!;
 });

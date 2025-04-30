@@ -1,31 +1,29 @@
 // src/app/page.tsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Speech } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateMiniQuiz } from '@/ai/flows/generate-mini-quiz';
-import { MoodSelector } from '@/components/mood-selector';
 
 export default function Home() {
   const [question, setQuestion] = useState('');
   const [orbiiResponse, setOrbiiResponse] = useState('');
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<any>(null);
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [hasMicrophonePermission, setHasMicrophonePermission] = useState<boolean | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (typeof window !== 'undefined') {
+      const SpeechRecognition: any = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recog = new SpeechRecognition();
-        recog.continuous = false;
+      recog.continuous = false;
         recog.interimResults = false;
         recog.lang = 'en-US';
 
@@ -36,8 +34,8 @@ export default function Home() {
           setIsListening(false);
         };
 
-        recog.onerror = (e: any) => {
-          toast({ title: 'Voice Error', description: e.error });
+          recog.onerror = (e:any) => {
+          toast({ title: 'Voice Error', description: (e as unknown as SpeechRecognitionErrorEvent).error });
           setIsListening(false);
         };
 
@@ -55,11 +53,9 @@ export default function Home() {
   const handleMiniQuiz = async () => {
     try {
       const res = await generateMiniQuiz({ topic: 'fractions' });
-      const formatted = res.quiz.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n');
-
-
+      const formatted = res.quiz.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n');      
       setOrbiiResponse(`Here’s your quiz:\n\n${formatted}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({ variant: 'destructive', title: 'Quiz Error', description: error.message || 'Failed to generate quiz.' });
     }
   };
@@ -67,8 +63,6 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-secondary px-4">
       <h1 className="text-3xl font-bold mb-4">Welcome to Orbii's AI Tutor</h1>
-
-      <MoodSelector onSelectMood={(mood) => toast({ title: 'Mood Selected', description: `You are feeling ${mood}` })} />
 
       <Textarea
         value={question}
@@ -86,7 +80,7 @@ export default function Home() {
             toast({
               variant: 'destructive',
               title: 'Microphone Access Denied',
-              description: 'Enable microphone permissions to use voice input.',
+              description: 'Enable microphone permissions to use voice input.&apos;',
             });
           }
         }}
@@ -103,7 +97,7 @@ export default function Home() {
       {orbiiResponse && (
         <Card className="w-full max-w-2xl">
           <CardHeader>
-            <CardTitle>Orbii Responds</CardTitle>
+            <CardTitle>Orbii's Response</CardTitle>
             <CardDescription className="whitespace-pre-line">{orbiiResponse}</CardDescription>
           </CardHeader>
         </Card>
@@ -112,7 +106,7 @@ export default function Home() {
       {!hasMicrophonePermission && (
         <Alert variant="destructive" className="mt-4">
           <AlertTitle>Microphone Access Required</AlertTitle>
-          <AlertDescription>Please allow microphone access in your browser.</AlertDescription>
+          <AlertDescription>Please allow microphone access in your browser. </AlertDescription>
         </Alert>
       )}
     </div>

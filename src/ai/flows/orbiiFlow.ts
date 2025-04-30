@@ -68,7 +68,7 @@ const orbiiFlowInternal = ai.defineFlow({
   name: 'orbiiFlow',
   inputSchema: OrbiiInputSchema,
   outputSchema: OrbiiOutputSchema,
-  run: async (input) => {
+  run: async (input: OrbiiInput) => {
     if (input.type === 'image' || input.intent === 'deep_help') {
       const solution = await callOpenAIGPT4o(input.data);
       return {

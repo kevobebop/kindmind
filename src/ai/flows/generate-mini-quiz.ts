@@ -64,7 +64,7 @@ const generateMiniQuizFlow = ai.defineFlow<
   name: 'generateMiniQuizFlow',
   inputSchema: GenerateMiniQuizInputSchema,
   outputSchema: GenerateMiniQuizOutputSchema,
-}, async input => {
+}, async (input: GenerateMiniQuizInput) => {
   const {output} = await prompt(input);
   return output!;
 });

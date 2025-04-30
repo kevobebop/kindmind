@@ -62,7 +62,7 @@ const processImageQuestionFlow = ai.defineFlow<
   inputSchema: ProcessImageQuestionInputSchema,
   outputSchema: ProcessImageQuestionOutputSchema,
 },
-async input => {
+async (input: ProcessImageQuestionInput) => {
   const {output} = await processImageQuestionPrompt(input);
   return output!;
 });

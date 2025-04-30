@@ -48,8 +48,7 @@ const summarizeAnswerFlow = ai.defineFlow<
   name: 'summarizeAnswerFlow',
   inputSchema: SummarizeAnswerInputSchema,
   outputSchema: SummarizeAnswerOutputSchema,
-},
-async input => {
+}, async (input: SummarizeAnswerInput) => {
   const {output} = await prompt(input);
   return output!;
 });
