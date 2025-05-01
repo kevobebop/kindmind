@@ -15,7 +15,8 @@ const nextConfig: NextConfig = {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
-        async_hooks: false, // Tells webpack that 'async_hooks' is not available/needed on the client
+        // Setting to false tells webpack this module is not needed client-side
+        async_hooks: false,
       };
     }
 
