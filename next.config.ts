@@ -8,15 +8,14 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Add webpack configuration to handle 'async_hooks'
+  // Add webpack configuration
   webpack: (config, { isServer }) => {
-    // Provide a fallback for 'async_hooks' only on the client-side
-    // This module is Node.js specific and shouldn't be bundled for the browser
+    // Provide fallbacks for Node.js core modules that shouldn't be bundled for the browser
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
-        // Setting to false tells webpack this module is not needed client-side
-        async_hooks: false,
+        async_hooks: false, // Already handled
+        fs: false, // Add fallback for 'fs'
       };
     }
 
