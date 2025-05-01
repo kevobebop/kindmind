@@ -17,7 +17,8 @@ const nextConfig: NextConfig = {
         ...config.resolve.fallback,
         async_hooks: false, // Already handled
         fs: false, // Already handled
-        tls: false, // Add fallback for 'tls'
+        tls: false, // Already handled
+        net: false, // Add fallback for 'net'
       };
     }
 
