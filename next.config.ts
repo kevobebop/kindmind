@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -15,7 +16,8 @@ const nextConfig: NextConfig = {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         async_hooks: false, // Already handled
-        fs: false, // Add fallback for 'fs'
+        fs: false, // Already handled
+        tls: false, // Add fallback for 'tls'
       };
     }
 
