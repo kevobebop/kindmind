@@ -19,7 +19,8 @@ const nextConfig: NextConfig = {
         fs: false, // Already handled
         tls: false, // Already handled
         net: false, // Already handled
-        http2: false, // Add fallback for 'http2'
+        http2: false, // Already handled
+        dns: false, // Add fallback for 'dns'
       };
     }
 
