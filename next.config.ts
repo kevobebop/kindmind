@@ -18,7 +18,8 @@ const nextConfig: NextConfig = {
         async_hooks: false, // Already handled
         fs: false, // Already handled
         tls: false, // Already handled
-        net: false, // Add fallback for 'net'
+        net: false, // Already handled
+        http2: false, // Add fallback for 'http2'
       };
     }
 
