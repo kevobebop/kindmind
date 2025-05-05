@@ -22,7 +22,7 @@ const nextConfig = {
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, // Added Stripe key
   },
    webpack: (config, { isServer }) => {
-    // Fix for 'fs' module not found error during client-side build
+    // Fix for Node.js built-in modules not found during client-side build
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback, // Spread existing fallbacks
