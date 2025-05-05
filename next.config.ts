@@ -8,7 +8,7 @@ const nextConfig = {
     appDir: true,
   },
   images: {
-    domains: ['localhost', 'your-domain.com'], // Replace with actual domains you use
+    domains: ['localhost', 'your-domain.com', 'picsum.photos'], // Added picsum.photos
   },
   env: {
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -34,6 +34,15 @@ const nextConfig = {
         async_hooks: false, // Add fallback for async_hooks
       };
     }
+
+    // Ensure node: prefixed imports are handled correctly
+    config.module.rules.push({
+      test: /\.m?js/,
+      resolve: {
+        fullySpecified: false,
+      },
+    });
+
 
     return config;
   },
