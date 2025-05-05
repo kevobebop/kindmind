@@ -23,27 +23,20 @@ const nextConfig = {
   },
    webpack: (config, { isServer }) => {
     // Fix for Node.js built-in modules not found during client-side build
-    if (!isServer) {
+    if (!isServer && config.resolve) { // Ensure config.resolve exists
       config.resolve.fallback = {
         ...config.resolve.fallback, // Spread existing fallbacks
-        fs: false, // Tell webpack to ignore 'fs' module on client-side
-        net: false, // Add fallbacks for other potentially problematic Node.js modules
-        tls: false,
-        dns: false,
-        http2: false,
-        async_hooks: false, // Ensure fallback for async_hooks is present
+        // Only add fallbacks for modules known to cause client-side issues
+        'async_hooks': false,
+        'fs': false,
+        'net': false,
+        'tls': false,
+        'dns': false,
+        'http2': false,
       };
     }
-
-    // Ensure node: prefixed imports are handled correctly by disabling fully specified requirement
-    // This rule targets JavaScript files (including .mjs) and adjusts resolution behavior.
-    config.module.rules.push({
-      test: /\.m?js$/, // Match .js and .mjs files
-      resolve: {
-        fullySpecified: false, // Allow imports without file extensions, helping with `node:` imports
-      },
-    });
-
+    // The `fullySpecified: false` rule might not be necessary if fallbacks handle the client-side issues.
+    // If `node:` prefix errors persist specifically on the server build, it might need re-evaluation.
 
     return config;
   },
