@@ -31,15 +31,16 @@ const nextConfig = {
         tls: false,
         dns: false,
         http2: false,
-        async_hooks: false, // Add fallback for async_hooks
+        async_hooks: false, // Ensure fallback for async_hooks is present
       };
     }
 
-    // Ensure node: prefixed imports are handled correctly
+    // Ensure node: prefixed imports are handled correctly by disabling fully specified requirement
+    // This rule targets JavaScript files (including .mjs) and adjusts resolution behavior.
     config.module.rules.push({
-      test: /\.m?js/,
+      test: /\.m?js$/, // Match .js and .mjs files
       resolve: {
-        fullySpecified: false,
+        fullySpecified: false, // Allow imports without file extensions, helping with `node:` imports
       },
     });
 
