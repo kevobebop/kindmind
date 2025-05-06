@@ -1,6 +1,10 @@
-import type { NextConfig } from 'next'
+use strict";
 
-const nextConfig: NextConfig = {
+// next.config.js
+/**
+ * @type {import('next').NextConfig}
+ */
+const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   compiler: {
@@ -8,21 +12,14 @@ const nextConfig: NextConfig = {
     styledComponents: true,
   },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+
     config.externals = [...(config.externals || []), 'bcrypt'];
-    config.resolve.fallback = {
-      ...(config.resolve.fallback || {}),
-      "async_hooks": false,
-      "fs": false,
-      "net": false,
-      "tls": false,
-      "dns": false,
-      "http2": false,
-    };
-    return config;
+
+    // Important: return the modified config
+    return config
   },
   images: {
     domains: ['localhost', 'res.cloudinary.com'],
   },
 }
-
-export default nextConfig
+export default nextConfig;
