@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
-import { testGeminiModel } from '@/ai/ai-instance'; // Import the test function
 
 export default function Home() {
   const [question, setQuestion] = useState('');
@@ -61,29 +60,6 @@ export default function Home() {
             // Increase duration for errors
             duration: 9000,
         });
-    } finally {
-      setLoading(false);
-    }
-  }, [question, toast]);
-
-  // Function to test the Gemini API connection
-  const handleTestGemini = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await testGeminiModel();
-      toast({
-        title: 'Gemini API Test',
-        description: result,
-        duration: 9000, // Show longer for test results
-      });
-    } catch (error: any) {
-      console.error('Error testing Gemini:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Gemini API Test Failed',
-        description: error.message || 'An unknown error occurred.',
-        duration: 9000,
-      });
     } finally {
       setLoading(false);
     }
@@ -139,17 +115,6 @@ export default function Home() {
       {/* Basic Footer with Test Button */}
       <footer className="w-full max-w-2xl mt-8 text-center text-muted-foreground text-sm">
         <p>Powered by Kind Mind Learning AI</p>
-        {/* Add a test button */}
-        <Button
-           variant="outline"
-           size="sm"
-           onClick={handleTestGemini}
-           disabled={loading}
-           className="mt-4"
-         >
-           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-           Test Gemini API
-         </Button>
       </footer>
     </div>
   );
