@@ -1,4 +1,4 @@
-use strict";
+ strict";
 
 // next.config.js
 /**
