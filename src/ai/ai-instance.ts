@@ -1,9 +1,10 @@
 
+'use server';
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
 
 // Ensure API keys are loaded (add console logs for debugging if needed)
-console.log('GOOGLE_GENAI_API_KEY loaded:', !!process.env.GOOGLE_GENAI_API_KEY);
+console.log('Preview GOOGLE_GENAI_API_KEY:', process.env.GOOGLE_GENAI_API_KEY);
 // console.log('OPENAI_API_KEY loaded:', !!process.env.OPENAI_API_KEY);
 
 
@@ -31,6 +32,8 @@ export const ai = configureGenkit();
 
 // Test function for Gemini
 export async function testGeminiModel() {
+  console.log('Testing Gemini Model...');
+  console.log('GOOGLE_GENAI_API_KEY in testGeminiModel:', process.env.GOOGLE_GENAI_API_KEY);
   try {
     if (!process.env.GOOGLE_GENAI_API_KEY) {
       return 'Gemini Test Skipped: GOOGLE_GENAI_API_KEY not set.';
@@ -60,5 +63,27 @@ export async function testGeminiModel() {
       errorMessage += ` (Is the model name '${modelName}' correct and available in your region/project?)`;
     }
     return errorMessage;
+  }
+}
+
+export async function testOpenAIModel() {
+  console.log('Testing OpenAI Model...');
+  console.log('OPENAI_API_KEY in testOpenAIModel:', process.env.OPENAI_API_KEY);
+   if (!process.env.OPENAI_API_KEY) {
+    return 'OpenAI Test Skipped: OPENAI_API_KEY not set.';
+  }
+  try {
+    // This function now directly uses callOpenAIGPT4o which has its own OpenAI client instance
+    // No need to get a model from Genkit's `ai` instance for this specific test.
+    const { callOpenAIGPT4o } = await import('@/services/callOpenAIGPT4o');
+    const response = await callOpenAIGPT4o('Tell me a short joke about AI.');
+    if (response && !response.startsWith("I'm having trouble connecting")) {
+      return `OpenAI Test Success: ${response}`;
+    } else {
+      return `OpenAI Test Failed: ${response || 'No response or connection issue.'}`;
+    }
+  } catch (error: any) {
+    console.error('OpenAI Test Error:', error);
+    return `OpenAI Test Failed: ${error.message || 'An unexpected error occurred.'}`;
   }
 }
