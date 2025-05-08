@@ -28,6 +28,7 @@ const OrbiiInputSchema = z.object({
   learningStruggles: z.string().optional().describe('The student\'s learning struggles.'),
   userMood: z.string().optional().describe('The user\'s current mood.'),
   topic: z.string().optional().describe('Topic to be answered or generated'),
+  textContextForImage: z.string().optional().describe('Optional text context when the input type is an image.')
 });
 
 export type OrbiiInput = z.infer<typeof OrbiiInputSchema>;
@@ -79,10 +80,10 @@ This is a returning student.
 {{/if}}
 
 {{#if data}}
-The student's current message/question is: "{{{data}}}". Please respond to this, keeping their context in mind.
+The student's current message/question is: "{{{data}}}{{#if textContextForImage}} (related to the uploaded image: {{{textContextForImage}}}){{/if}}". Please respond to this, keeping their context in mind.
 {{else}}
   {{#unless isNewUser}}
-    If they haven't provided a specific question yet (i.e., 'data' is empty), and this is a returning user, you can gently prompt them based on the greeting you've already formulated (e.g., asking if they want to continue with `lastSessionContext` or choose a new topic).
+    If they haven't provided a specific question yet (i.e., 'data' is empty), and this is a returning user, you can gently prompt them based on the greeting you've already formulated (e.g., asking if they want to continue with 'lastSessionContext' or choose a new topic).
   {{/unless}}
   {{#if isNewUser}}
     If 'data' is empty and it's a new user, your primary goal is to deliver the initial friendly greeting and question as instructed above.
@@ -102,19 +103,27 @@ Please formulate a helpful and supportive response. If the task is complex (like
 });
 
 const orbiiFlowInternal = ai.defineFlow({
-  name: 'orbiiFlowInternal', // Changed name to avoid conflict if orbiiFlow is redefined elsewhere
+  name: 'orbiiFlowInternal',
   inputSchema: OrbiiInputSchema,
   outputSchema: OrbiiOutputSchema,
   run: async (input: OrbiiInput) => {
-    // Handle image or deep_help intents by calling the specialized GPT-4o function
     if (input.type === 'image' || input.intent === 'deep_help') {
-      const contentToProcess = typeof input.data === 'string' ? input.data : '';
-      if (input.type === 'image' && !contentToProcess) {
+      let contentToProcess = '';
+      if (input.type === 'image') {
+        contentToProcess = input.data || ''; // data is image data URI
+        if (input.textContextForImage) {
+          // Append text context if available for images
+          contentToProcess = `Image data: ${contentToProcess}\nText context: ${input.textContextForImage}`;
+        }
+      } else if (input.intent === 'deep_help' && input.type === 'text') {
+        contentToProcess = input.data || '';
+      }
+
+
+      if (input.type === 'image' && !(input.data)) {
         return { response: "It looks like there was an issue with the image you tried to send. Could you please try uploading it again?" };
       }
       
-      // For 'deep_help' with text, or any image, callOpenAIGPT4o
-      // If data is empty for a deep_help text request, provide a guiding response.
       if (input.intent === 'deep_help' && input.type === 'text' && !contentToProcess) {
         return { response: "I'm ready to help with a deeper explanation! What's the specific question or topic you'd like me to focus on?" };
       }
@@ -124,11 +133,9 @@ const orbiiFlowInternal = ai.defineFlow({
         response: `Okay, I've taken a closer look with some extra brainpower! Here’s what I found:\n\n${solution}\n\nWould you like me to explain that in a different way, or perhaps we can try a practice problem together?`,
       };
     } else {
-      // For other intents (including 'initial_greeting') or general text-based interactions, use the main orbiiPrompt
       const { output } = await orbiiPrompt(input);
       if (!output || typeof output.response !== 'string') {
         console.error("Orbii prompt did not return a valid response object or string:", output);
-        // Provide a generic, safe fallback response
         return { response: "I'm having a little trouble thinking right now. Could you try asking me again in a moment?" };
       }
       return {
@@ -138,16 +145,11 @@ const orbiiFlowInternal = ai.defineFlow({
   },
 });
 
-// Optional: Define a specific flow for just getting the initial greeting if needed,
-// though the main orbiiFlow is now designed to handle it based on input.
 export async function getOrbiiGreeting(input: { isNewUser?: boolean; lastSessionContext?: string }): Promise<OrbiiOutput> {
   return orbiiFlowInternal({
     type: 'text',
     intent: 'initial_greeting',
     isNewUser: input.isNewUser,
     lastSessionContext: input.lastSessionContext,
-    // data can be omitted as it's optional and not relevant for a pure greeting request
   });
 }
-
-    
