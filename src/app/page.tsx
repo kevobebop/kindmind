@@ -2,19 +2,16 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import {
-  generateHomeworkAnswer,
+import type {
   GenerateHomeworkAnswerOutput,
 } from '@/ai/flows/generate-homework-answer';
-import { summarizeAnswer } from '@/ai/flows/summarize-answer-for-clarity';
-import { processImageQuestion } from '@/ai/flows/process-image-question';
-import { asdTutor, AsdTutorOutput } from '@/ai/flows/asd-tutor-flow';
-import { checkUnderstanding } from '@/ai/flows/check-understanding';
-import { generateMiniQuiz } from '@/ai/flows/generate-mini-quiz';
-import { getLearningStyle, GetLearningStyleOutput } from '@/ai/flows/get-learning-style';
+import type { AsdTutorOutput } from '@/ai/flows/asd-tutor-flow';
+import type { GenerateLessonPlanOutput } from '@/ai/flows/generate-lesson-plan';
+import type { OrbiiInput, OrbiiOutput } from '@/ai/flows/orbiiFlow';
+
+import { orbiiFlow, getOrbiiGreeting } from '@/ai/flows/orbiiFlow';
+import { generateLessonPlan } from '@/ai/flows/generate-lesson-plan';
 import { generateProgressReport } from '@/ai/flows/generate-progress-report';
-import { generateLessonPlan, GenerateLessonPlanOutput } from '@/ai/flows/generate-lesson-plan';
-import { orbiiFlow, OrbiiInput, OrbiiOutput, getOrbiiGreeting } from '@/ai/flows/orbiiFlow';
 
 
 import {
@@ -45,6 +42,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { loadStripe } from '@stripe/stripe-js';
+import type { Stripe, StripeElements } from '@stripe/stripe-js';
 import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import { Progress } from "@/components/ui/progress";
 import Image from 'next/image';
@@ -52,15 +50,15 @@ import { testGeminiModel, testOpenAIModel } from '@/ai/ai-instance';
 
 
 // Log for checking if Stripe public key is loaded on the client
-console.log('Stripe Public Key (Client-side):', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+// This log is generally fine for debugging but ensure it doesn't cause issues if NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is sensitive during SSR
+if (typeof window !== 'undefined') {
+  console.log('Stripe Public Key (Client-side):', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+}
+
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
-
-if (!stripePromise && typeof window !== 'undefined') { // check typeof window to prevent SSR error
-  console.error("Stripe public key is not defined. Stripe functionality will be disabled.");
-}
 
 const Mascot = ({ talking, mood }: { talking: boolean; mood: string }) => {
   let mascotImage = '/orbii_neutral.png'; // Default
@@ -134,6 +132,7 @@ const CheckoutForm = ({ onSuccess, onError }: { onSuccess: () => void; onError: 
 
 export default function Home() {
   const [question, setQuestion] = useState('');
+  const [topic, setTopic] = useState(''); // Added topic state
   const [currentAnswer, setCurrentAnswer] = useState<GenerateHomeworkAnswerOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
@@ -142,7 +141,7 @@ export default function Home() {
   const [isVoiceChatEnabled, setIsVoiceChatEnabled] = useState(false);
   const [currentLessonPlan, setCurrentLessonPlan] = useState<GenerateLessonPlanOutput | null>(null);
   const [userMood, setUserMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
-  const [isSubscribed, setIsSubscribed] = useState(false); // Default to false, user needs to "subscribe"
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
 
   const [isGuardianView, setIsGuardianView] = useState(false);
@@ -152,7 +151,7 @@ export default function Home() {
     { name: 'Week 3', questions: 12, mastery: 60 },
     { name: 'Week 4', questions: 10, mastery: 75 },
   ]);
-  const [masteryLevel, setMasteryLevel] = useState<number>(0); // Initial mastery
+  const [masteryLevel, setMasteryLevel] = useState<number>(0);
 
 
   const [isListening, setIsListening] = useState(false);
@@ -165,13 +164,15 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
 
 
- useEffect(() => {
+  useEffect(() => {
     setIsClient(true);
     if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+      const errorMessage = "Stripe public key is not set. Payment functionality will be disabled. Please set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in your .env.local file and restart the server.";
+      console.error(errorMessage); // Moved console.error here
       toast({
         variant: 'destructive',
         title: 'Stripe Configuration Error',
-        description: 'Stripe public key is not set. Payment functionality will be disabled. Please set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in your .env.local file and restart the server.',
+        description: errorMessage,
         duration: 10000,
       });
     }
@@ -179,29 +180,37 @@ export default function Home() {
 
 
   useEffect(() => {
-    // Initial greeting from Orbii
     const fetchGreeting = async () => {
+      setLoading(true);
       try {
-        const output = await getOrbiiGreeting({ isNewUser: true }); // Assuming new user for initial load
+        const output = await getOrbiiGreeting({ isNewUser: conversationHistory.length === 0, lastSessionContext: conversationHistory.length > 1 ? conversationHistory.slice(-2)[0].content.substring(0,50) + "..." : undefined});
         setOrbiiResponse(output.response);
-        // If voice chat is enabled by default or via user setting, speak here
-        // if (isVoiceChatEnabled) speakText(output.response);
+        addToConversation({ role: 'orbii', content: output.response });
+        if (isVoiceChatEnabled && output.response) speakText(output.response);
       } catch (error) {
         console.error("Error with initial Orbii greeting:", error);
+        const errText = "Sorry, I couldn't start our conversation properly. Please try refreshing!";
+        setOrbiiResponse(errText);
+        addToConversation({ role: 'orbii', content: errText });
         toast({ variant: 'destructive', title: 'Orbii Error', description: 'Could not get initial greeting.' });
+      } finally {
+        setLoading(false);
       }
     };
-    fetchGreeting();
-  }, [toast]); // Add toast to dependency array if used inside
+    if (isClient && conversationHistory.length === 0) { // Fetch greeting only on client, after initial mount and if no history
+        fetchGreeting();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient]); // Run once when isClient becomes true
 
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const SpeechRecognition =
+      const SpeechRecognitionService =
         window.SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-      if (SpeechRecognition) {
-        const recog = new SpeechRecognition();
+      if (SpeechRecognitionService) {
+        const recog = new SpeechRecognitionService();
         recog.continuous = false;
         recog.interimResults = false;
         recog.lang = 'en-US';
@@ -209,8 +218,7 @@ export default function Home() {
         recog.onresult = (event: SpeechRecognitionEvent) => {
           const transcript = event.results[0][0].transcript;
           setQuestion(transcript);
-          // Automatically submit the question after voice input
-          handleOrbiiInteraction(transcript); // Use current imageUrl if any
+          handleOrbiiInteraction(transcript, imageUrl || undefined);
           toast({ title: 'Voice Input Received', description: transcript });
           setIsListening(false);
         };
@@ -230,10 +238,10 @@ export default function Home() {
         setRecognition(recog);
       } else {
         console.warn("SpeechRecognition API not supported in this browser.");
-        // Optionally toast here if speech is a critical feature
       }
     }
-  }, [toast]); // Removed handleOrbiiInteraction from deps as it causes re-init
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageUrl, toast]);
 
 
   const speakText = useCallback((text: string) => {
@@ -246,12 +254,16 @@ export default function Home() {
       setIsOrbiiTalking(false);
       toast({ variant: 'destructive', title: 'Speech Error', description: 'Could not read the text aloud.' });
     };
-    window.speechSynthesis.cancel(); // Cancel any previous speech
+    window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   }, [isVoiceChatEnabled, toast]);
 
 
   const handleOrbiiInteraction = useCallback(async (userInput: string, imageInputDataUrl?: string) => {
+    if (!userInput && !imageInputDataUrl) {
+        toast({title: "Nothing to send", description: "Please type a question or upload an image."});
+        return;
+    }
     if (!isSubscribed && userInput.toLowerCase() !== 'test_subscription') {
       toast({ variant: 'destructive', title: 'Subscription Required', description: 'Please subscribe for full access or start a free trial.' });
       setShowCheckout(true);
@@ -259,57 +271,55 @@ export default function Home() {
     }
 
     setLoading(true);
-    setOrbiiResponse(null); // Clear previous Orbii direct response
-    setCurrentAnswer(null); // Clear previous structured answer
-    setCurrentLessonPlan(null); // Clear previous lesson plan
+    setOrbiiResponse(null);
+    setCurrentAnswer(null);
+    setCurrentLessonPlan(null);
 
-    addToConversation({ role: 'user', content: userInput, isImage: !!imageInputDataUrl });
+    addToConversation({ role: 'user', content: userInput || "Image query", isImage: !!imageInputDataUrl });
     if (imageInputDataUrl) {
-      addToConversation({ role: 'user', content: imageInputDataUrl, isImage: true });
+      // addToConversation({ role: 'user', content: imageInputDataUrl, isImage: true }); // Redundant if image shown in combined message
     }
 
     try {
       const orbiiInput: OrbiiInput = {
         type: imageInputDataUrl ? 'image' : 'text',
-        data: imageInputDataUrl || userInput,
-        intent: 'homework_help', // This could be more dynamic based on context or buttons
+        data: imageInputDataUrl || userInput, // Pass image data URI if available, otherwise text
+        intent: 'homework_help',
         userMood: userMood,
-        topic: topic || userInput, // Use explicit topic if set, else use userInput
-        // gradeLevel, learningStrengths, learningStruggles would be sourced from user profile
+        topic: topic || userInput,
+        gradeLevel: "5th Grade", // Placeholder
+        learningStrengths: "Visual learner", // Placeholder
+        learningStruggles: "Math concepts", // Placeholder
+        isNewUser: conversationHistory.length <= 1, // Consider initial greeting as first interaction
+        lastSessionContext: conversationHistory.length > 1 ? conversationHistory.slice(-2)[0].content.substring(0,50) + "..." : undefined
       };
       if (imageInputDataUrl) {
-        orbiiInput.textContextForImage = userInput;
+         orbiiInput.textContextForImage = userInput; // Ensure text input is passed as context for image
       }
 
 
       const output = await orbiiFlow(orbiiInput);
-      setOrbiiResponse(output.response); // Display Orbii's conversational response
+      setOrbiiResponse(output.response);
       addToConversation({ role: 'orbii', content: output.response });
       if (isVoiceChatEnabled) speakText(output.response);
 
-      // Simulate mastery progress for demo
       setMasteryLevel(prev => Math.min(100, prev + Math.floor(Math.random() * 5) + 3));
       setStudentProgressData(prev => {
-        const lastWeek = prev[prev.length - 1];
-        const newQuestions = lastWeek.questions + 1;
-        const newMastery = Math.min(100, lastWeek.mastery + Math.floor(Math.random() * 5) + 3);
-        if (prev.length >= 4) { // Keep history to a certain length if desired
-            // return [...prev.slice(1), { ...lastWeek, name: `Week ${prev.length}`, questions: newQuestions, mastery: newMastery }];
-             return [...prev.slice(0,-1), {...lastWeek, questions: newQuestions, mastery: newMastery}]; // Or just update last entry
-        }
-        return [...prev, { name: `Week ${prev.length + 1}`, questions: newQuestions, mastery: newMastery }];
+        const lastEntry = prev.length > 0 ? prev[prev.length - 1] : { name: 'Week 0', questions: 0, mastery: 0 };
+        const newQuestions = (lastEntry.questions || 0) + 1;
+        const newMastery = Math.min(100, (lastEntry.mastery || 0) + Math.floor(Math.random() * 5) + 3);
+        const weekNumber = prev.length + 1;
+        return [...prev, { name: `Week ${weekNumber}`, questions: newQuestions, mastery: newMastery }];
       });
 
 
-      // Generate lesson plan based on the interaction
-      if (output.response.length > 30 && (topic || userInput)) { // Condition to generate a lesson plan
+      if (output.response.length > 20 && (topic || userInput)) {
         const lessonPlanResponse = await generateLessonPlan({
           topic: topic || userInput,
-          studentLevel: "intermediate", // Placeholder, ideally from user profile
-          learningStyle: "visual", // Placeholder, ideally from user profile or getLearningStyle flow
+          studentLevel: "intermediate",
+          learningStyle: "visual",
         });
         setCurrentLessonPlan(lessonPlanResponse);
-        // toast({ title: "Lesson Plan Created!", description: "Check the lesson plan section."});
       }
 
 
@@ -323,10 +333,10 @@ export default function Home() {
     } finally {
       setLoading(false);
       setQuestion('');
-      setImageUrl('');
-      // setTopic(''); // Decide if topic should be cleared
+      // setImageUrl(''); // Keep image URL until user explicitly clears or sends new one
+      // setTopic('');
     }
-  }, [isSubscribed, toast, userMood, isVoiceChatEnabled, speakText, topic]);
+  }, [isSubscribed, toast, userMood, isVoiceChatEnabled, speakText, topic, conversationHistory]);
 
   const addToConversation = (message: { role: 'user' | 'orbii'; content: string; isImage?: boolean }) => {
     setConversationHistory(prev => [...prev, message]);
@@ -339,8 +349,6 @@ export default function Home() {
       reader.onloadend = () => {
         const result = reader.result as string;
         setImageUrl(result);
-        // Automatically submit if user prefers, or wait for text + send
-        // handleOrbiiInteraction(question || "Please help with this image.", result);
         toast({title: "Image Selected", description: "Add any text notes and click 'Send to Orbii'"});
       };
       reader.readAsDataURL(file);
@@ -376,15 +384,16 @@ export default function Home() {
         } catch (err) {
           console.error("Error accessing camera:", err);
           setHasCameraPermission(false);
-          // toast({ variant: "destructive", title: "Camera Access Denied", description: "Please enable camera permissions." });
         }
       } else {
         setHasCameraPermission(false);
         console.log("navigator.mediaDevices not available");
       }
     };
-    getCameraPerm();
-  }, []);
+    if(isClient) { // Only run on client
+        getCameraPerm();
+    }
+  }, [isClient]);
 
   const captureImageFromCamera = () => {
     if (videoRef.current && hasCameraPermission) {
@@ -404,7 +413,6 @@ export default function Home() {
   };
 
 
-  // Function to handle voice input
   const handleVoiceInput = () => {
     if (recognition && !isListening) {
       setIsListening(true);
@@ -419,17 +427,10 @@ export default function Home() {
     } else if (isListening && recognition) {
       recognition.stop();
       setIsListening(false);
-      // toast({ title: "Stopped Listening"}); // Optional: notify user listening stopped
     } else if (!recognition) {
         toast({ variant: 'destructive', title: 'Voice Not Available', description: 'Speech recognition is not supported or enabled in your browser.' });
     }
   };
-
-
-  if (typeof window !== 'undefined' && !stripePromise && !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && isClient) {
-     // This console.warn will only run on the client if stripePromise couldn't be initialized.
-    console.warn("Stripe public key is missing or invalid. Subscription feature will not work.");
-  }
 
 
   if (!isClient) {
@@ -450,7 +451,7 @@ export default function Home() {
           <h1 className="text-4xl font-bold text-primary">Kind Mind Learning</h1>
         </div>
          <Mascot talking={isOrbiiTalking} mood={userMood} />
-        {orbiiResponse && (
+        {orbiiResponse && !loading && conversationHistory.length > 0 && conversationHistory[conversationHistory.length-1].role === 'orbii' && (
           <Card className="bg-primary/10 border-primary/30 shadow-lg w-full max-w-md mx-auto mt-2">
             <CardContent className="p-3">
               <p className="text-sm text-foreground text-center whitespace-pre-wrap">{orbiiResponse}</p>
@@ -460,7 +461,6 @@ export default function Home() {
       </header>
 
       <main className="w-full max-w-3xl flex-1 space-y-6">
-        {/* Subscription Area */}
         {!isSubscribed && (
           <Card className="shadow-xl border-primary/50">
             <CardHeader>
@@ -471,14 +471,14 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
+              <Button
                 onClick={() => {
                   if (stripePromise) {
                     setShowCheckout(true)
                   } else {
                     toast({ variant: "destructive", title: "Payment System Unavailable", description: "Stripe is not configured correctly."})
                   }
-                }} 
+                }}
                 className="w-full text-lg py-3 bg-accent hover:bg-accent/90 text-accent-foreground"
                 disabled={!stripePromise}
               >
@@ -505,10 +505,8 @@ export default function Home() {
         )}
 
 
-        {/* Main Interaction Area */}
         {isSubscribed && (
           <>
-            {/* Conversation History */}
             <Card className="shadow-lg max-h-96 overflow-y-auto p-4 space-y-3 bg-background/70 scroll-smooth">
               <CardHeader className="p-2 sticky top-0 bg-background/80 backdrop-blur-sm z-10">
                 <CardTitle className="text-lg">Conversation with Orbii</CardTitle>
@@ -517,7 +515,7 @@ export default function Home() {
                 {conversationHistory.map((msg, index) => (
                   <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[70%] p-2 rounded-lg shadow ${msg.role === 'user' ? 'bg-primary/80 text-primary-foreground' : 'bg-muted'}`}>
-                      {msg.isImage ? <Image src={msg.content} alt="User upload" width={200} height={200} className="rounded-md object-contain max-h-48" data-ai-hint="homework image" /> : <p className="text-sm whitespace-pre-wrap">{msg.content}</p>}
+                      {msg.isImage && msg.content.startsWith('data:image') ? <Image src={msg.content} alt="User upload" width={200} height={200} className="rounded-md object-contain max-h-48" data-ai-hint="homework image" /> : <p className="text-sm whitespace-pre-wrap">{msg.content}</p>}
                     </div>
                   </div>
                 ))}
@@ -532,11 +530,10 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* Input Area */}
             <Card className="shadow-xl sticky bottom-2 bg-background/90 backdrop-blur-sm p-1 md:p-2 z-20">
               <CardContent className="p-2 md:p-4 space-y-3">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
-                    <Input 
+                    <Input
                         type="text"
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
@@ -561,9 +558,9 @@ export default function Home() {
                     placeholder="Ask Orbii anything or describe your image..."
                     className="flex-grow resize-none text-sm min-h-[40px] md:min-h-[60px]"
                     rows={2}
-                    onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleOrbiiInteraction(question, imageUrl);}}}
+                    onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleOrbiiInteraction(question, imageUrl || undefined);}}}
                   />
-                  <Button onClick={() => handleOrbiiInteraction(question, imageUrl)} disabled={loading || (!question && !imageUrl)} size="icon" className="h-10 w-10 md:h-12 md:w-12 bg-primary hover:bg-primary/90 shrink-0">
+                  <Button onClick={() => handleOrbiiInteraction(question, imageUrl || undefined)} disabled={loading || (!question && !imageUrl)} size="icon" className="h-10 w-10 md:h-12 md:w-12 bg-primary hover:bg-primary/90 shrink-0">
                     <Send className="h-5 w-5 md:h-6 md:w-6"/>
                   </Button>
                 </div>
@@ -595,14 +592,14 @@ export default function Home() {
                         </Button>
                     </div>
                 )}
-                {hasCameraPermission === false && isClient && ( // Only render alert on client after permission check
+                {hasCameraPermission === false && isClient && (
                     <Alert variant="destructive" className="mt-2">
                         <Camera className="h-4 w-4" />
                         <AlertTitle>Camera Access Denied</AlertTitle>
                         <AlertDescription>Allow camera access in browser settings to use the camera feature. You may need to serve the app over HTTPS or localhost.</AlertDescription>
                     </Alert>
                 )}
-                 {hasCameraPermission === true && isClient && ( // Only render video on client if permission granted
+                 {hasCameraPermission === true && isClient && (
                     <div className="mt-2 w-full max-w-xs mx-auto">
                         <video ref={videoRef} className="w-full aspect-video rounded-md bg-black" autoPlay muted playsInline />
                     </div>
@@ -612,7 +609,6 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* Additional Features Bar */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-4">
                  <Dialog>
                     <DialogTrigger asChild>
@@ -624,7 +620,7 @@ export default function Home() {
                         <DialogDescription>Based on your last interaction with Orbii:</DialogDescription>
                         </DialogHeader>
                         {currentLessonPlan && currentLessonPlan.lessonPlan ? (
-                        <div className="prose prose-sm dark:prose-invert max-h-[60vh] overflow-y-auto p-1" dangerouslySetInnerHTML={{ __html: currentLessonPlan.lessonPlan.replace(/\n/g, '<br />').replace(/\* \*(.*?)\* \*/g, '<strong>$1</strong>').replace(/\* (.*?)\n/g, '<li>$1</li>').replace(/<\/li><br \/>/g, '</li>') }} />
+                        <div className="prose prose-sm dark:prose-invert max-h-[60vh] overflow-y-auto p-1" dangerouslySetInnerHTML={{ __html: currentLessonPlan.lessonPlan.replace(/\n/g, '<br />').replace(/\* \*(.*?)\* \*/g, '<strong>$1</strong>').replace(/\* (.*?)(?:\n|<br \/>)/g, '<li>$1</li>').replace(/<\/li><br \/>/g, '</li>') }} />
                         ) : (
                         <p>No lesson plan generated yet. Ask Orbii a question about a topic to get started!</p>
                         )}
@@ -659,7 +655,7 @@ export default function Home() {
                                 <p className="text-xs text-muted-foreground text-center">Keep practicing to improve!</p>
                             </CardContent>
                         </Card>
-                        {isClient && (
+                        {isClient && studentProgressData.length > 0 && (
                         <ResponsiveContainer width="100%" height={300} className="mt-4">
                         <LineChart data={studentProgressData}>
                             <CartesianGrid strokeDasharray="3 3" />
@@ -680,10 +676,10 @@ export default function Home() {
                             try {
                                 setLoading(true);
                                 const reportOutput = await generateProgressReport({
-                                    sessions: conversationHistory.filter(s=>s.role === 'orbii').slice(-5).map(s => ({ // Use last 5 Orbii interactions for report
+                                    sessions: conversationHistory.filter(s=>s.role === 'orbii').slice(-5).map(s => ({
                                         topic: topic || "General",
-                                        successLevel: Math.floor(Math.random() * 3) + 3, // Placeholder success
-                                        notes: s.content.substring(0,100) + "..." // Truncate notes
+                                        successLevel: Math.floor(Math.random() * 3) + 3,
+                                        notes: s.content.substring(0,100) + "..."
                                     }))
                                 });
                                 toast({ title: "Full Progress Report", description: reportOutput.report, duration: 15000, className:"max-w-md" });
@@ -700,7 +696,6 @@ export default function Home() {
             </div>
 
 
-             {/* Guardian View Toggle and Dashboard */}
             <Card className="mt-6 shadow-md">
               <CardHeader className="flex flex-row items-center justify-between p-4">
                 <CardTitle className="text-lg">Guardian Tools</CardTitle>
@@ -728,11 +723,10 @@ export default function Home() {
                         const reportOutput = await generateProgressReport({
                              sessions: conversationHistory.filter(s=>s.role === 'orbii').slice(-10).map(s => ({
                                 topic: topic || "General",
-                                successLevel: Math.floor(Math.random() * 3) + 3,
+                                successLevel: Math.floor(Math.random() * 3) + 3, // Random success for demo
                                 notes: s.content.substring(0,100) + "..."
                             }))
                         });
-                        // Use a dialog for long reports
                          toast({ title: "Generated Guardian Progress Report", description: reportOutput.report, duration: 20000, className:"max-w-md whitespace-pre-wrap" });
                       } catch (e : any) {
                         toast({ variant: "destructive", title: "Report Error", description: e.message });
@@ -789,10 +783,8 @@ export default function Home() {
   );
 }
 
-// Helper to ensure Stripe is loaded before rendering CheckoutForm
 const StripeCheckout = ({ onSuccess, onError }: { onSuccess: () => void; onError: (error: any) => void }) => {
   if (!stripePromise) {
-    // This should ideally not be reached if the button is disabled correctly
     return <p className="text-destructive text-center">Stripe is not available. Please configure the Stripe public key.</p>;
   }
   return (
@@ -800,4 +792,16 @@ const StripeCheckout = ({ onSuccess, onError }: { onSuccess: () => void; onError
       <CheckoutForm onSuccess={onSuccess} onError={onError} />
     </Elements>
   );
+};
+
+// Helper to ensure client-side only execution for certain components/hooks
+const ClientOnly: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  if (!hasMounted) {
+    return null;
+  }
+  return <>{children}</>;
 };
