@@ -3,5 +3,6 @@
     "IDX.aI.enableCodebaseIndexing": true,
     "files.autoSave": "afterDelay",
     "debug.console.acceptSuggestionOnEnter": "on",
-    "scm.alwaysShowRepositories": true
+    "scm.alwaysShowRepositories": true,
+    "IDX.corgiMode": true
 }
