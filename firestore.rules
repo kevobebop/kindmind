@@ -1,0 +1,86 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check user roles
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function hasRole(role) {
+      return isSignedIn() && request.auth.token.role == role;
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isParent() {
+      return hasRole('parent');
+    }
+
+    function isStudent() {
+      return hasRole('student');
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own profile
+      // Parents can read their student's profile (requires linking logic not covered here)
+      // Admins can read any profile
+      allow read: if isUser(userId) || isAdmin(); // Add parent logic if needed
+      // Users can update their own profile
+      // Admins can update any profile
+      allow write: if isUser(userId) || isAdmin();
+      // Only admins can create users directly (typically handled by auth triggers or admin SDK)
+      allow create: if isAdmin();
+    }
+
+    // Lessons collection
+    match /lessons/{lessonId} {
+      // Students can read lessons assigned to them (requires linking field like 'studentId')
+      // Parents can read lessons of their students
+      // Admins can read/write all lessons
+      allow read: if isSignedIn() || isAdmin(); // Needs refinement based on how lessons are linked
+      allow write: if isAdmin(); // Only admins/tutors create lessons
+    }
+
+    // Chats collection
+    // Assuming chats are subcollections of a user or a shared chat room
+    // Example: /users/{userId}/chats/{chatId}/messages/{messageId}
+    match /users/{userId}/chats/{chatId}/messages/{messageId} {
+        // User can read/write their own chat messages
+        allow read, write: if isUser(userId) || isAdmin();
+    }
+    // Example: /chatRooms/{roomId}/messages/{messageId} (more complex rules needed for room membership)
+
+
+    // Quizzes collection
+    match /quizzes/{quizId} {
+      allow read: if isSignedIn() || isAdmin();
+      allow write: if isAdmin(); // Admins/tutors create quizzes
+    }
+
+    // Progress collection
+    // Assuming progress is linked to a user: /users/{userId}/progress/{progressId}
+    match /users/{userId}/progress/{progressId} {
+      allow read, write: if isUser(userId) || isAdmin();
+    }
+
+    // Feedback collection
+    match /feedback/{feedbackId} {
+      allow read: if isAdmin(); // Only admins read feedback
+      allow create: if isSignedIn(); // Any signed-in user can submit feedback
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
