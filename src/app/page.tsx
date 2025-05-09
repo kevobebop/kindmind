@@ -284,14 +284,14 @@ export default function Home() {
       const orbiiInput: OrbiiInput = {
         type: imageInputDataUrl ? 'image' : 'text',
         data: imageInputDataUrl || userInput, // Pass image data URI if available, otherwise text
-        intent: 'homework_help',
+        intent: 'homework_help', // Default intent, could be made more dynamic
         userMood: userMood,
-        topic: topic || userInput,
-        gradeLevel: "5th Grade", // Placeholder
+        topic: topic || userInput, // Use specific topic if set, else user input
+        gradeLevel: "5th Grade", // Placeholder, ideally from user profile
         learningStrengths: "Visual learner", // Placeholder
         learningStruggles: "Math concepts", // Placeholder
         isNewUser: conversationHistory.length <= 1, // Consider initial greeting as first interaction
-        lastSessionContext: conversationHistory.length > 1 ? conversationHistory.slice(-2)[0].content.substring(0,50) + "..." : undefined
+        lastSessionContext: conversationHistory.length > 1 ? conversationHistory.slice(-2).find(msg => msg.role === 'orbii')?.content.substring(0,50) + "..." : undefined
       };
       if (imageInputDataUrl) {
          orbiiInput.textContextForImage = userInput; // Ensure text input is passed as context for image
@@ -303,21 +303,23 @@ export default function Home() {
       addToConversation({ role: 'orbii', content: output.response });
       if (isVoiceChatEnabled) speakText(output.response);
 
+      // Update progress metrics (simplified for demo)
       setMasteryLevel(prev => Math.min(100, prev + Math.floor(Math.random() * 5) + 3));
       setStudentProgressData(prev => {
         const lastEntry = prev.length > 0 ? prev[prev.length - 1] : { name: 'Week 0', questions: 0, mastery: 0 };
         const newQuestions = (lastEntry.questions || 0) + 1;
-        const newMastery = Math.min(100, (lastEntry.mastery || 0) + Math.floor(Math.random() * 5) + 3);
-        const weekNumber = prev.length + 1;
+        const newMastery = Math.min(100, (lastEntry.mastery || 0) + Math.floor(Math.random() * 5) + 3); // Ensure mastery doesn't exceed 100
+        const weekNumber = prev.length + 1; // Simple week increment
         return [...prev, { name: `Week ${weekNumber}`, questions: newQuestions, mastery: newMastery }];
       });
 
 
-      if (output.response.length > 20 && (topic || userInput)) {
+      // Auto-generate a lesson plan if Orbii's response is substantial
+      if (output.response.length > 20 && (topic || userInput)) { // Arbitrary length check
         const lessonPlanResponse = await generateLessonPlan({
           topic: topic || userInput,
-          studentLevel: "intermediate",
-          learningStyle: "visual",
+          studentLevel: "intermediate", // Placeholder
+          learningStyle: "visual", // Placeholder
         });
         setCurrentLessonPlan(lessonPlanResponse);
       }
@@ -334,7 +336,7 @@ export default function Home() {
       setLoading(false);
       setQuestion('');
       // setImageUrl(''); // Keep image URL until user explicitly clears or sends new one
-      // setTopic('');
+      // setTopic(''); // Keep topic until user changes it
     }
   }, [isSubscribed, toast, userMood, isVoiceChatEnabled, speakText, topic, conversationHistory]);
 
@@ -520,10 +522,10 @@ export default function Home() {
                   </div>
                 ))}
                  {loading && (
-                    <div className="flex justify-start">
+                    <div className="flex justify-start mt-2">
                         <div className="max-w-[70%] p-2 rounded-lg bg-muted flex items-center shadow">
                             <Brain className="animate-pulse h-5 w-5 mr-2 text-primary" />
-                            <p className="text-sm italic">Orbii is thinking...</p>
+                            <p className="text-sm italic text-muted-foreground">Orbii is thinking...</p>
                         </div>
                     </div>
                 )}
@@ -677,8 +679,8 @@ export default function Home() {
                                 setLoading(true);
                                 const reportOutput = await generateProgressReport({
                                     sessions: conversationHistory.filter(s=>s.role === 'orbii').slice(-5).map(s => ({
-                                        topic: topic || "General",
-                                        successLevel: Math.floor(Math.random() * 3) + 3,
+                                        topic: topic || "General", // Use current topic or general
+                                        successLevel: Math.floor(Math.random() * 3) + 3, // Random success for demo
                                         notes: s.content.substring(0,100) + "..."
                                     }))
                                 });
