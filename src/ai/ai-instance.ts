@@ -1,5 +1,4 @@
 
-'use server';
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
 
@@ -33,10 +32,10 @@ export const ai = configureGenkit();
 // Test function for Gemini
 export async function testGeminiModel() {
   console.log('Testing Gemini Model...');
-  console.log('GOOGLE_GENAI_API_KEY in testGeminiModel:', process.env.GOOGLE_GENAI_API_KEY);
+  console.log('GOOGLE_GENAI_API_KEY in testGeminiModel:', process.env.GOOGLE_GENAI_KEY);
   try {
-    if (!process.env.GOOGLE_GENAI_API_KEY) {
-      return 'Gemini Test Skipped: GOOGLE_GENAI_API_KEY not set.';
+    if (!ai || !process.env.GOOGLE_GENAI_API_KEY) { // Check if ai is initialized
+      return 'Gemini Test Skipped: Genkit AI not initialized or GOOGLE_GENAI_API_KEY not set.';
     }
     const llm = ai.getModel();
     if (!llm) {
@@ -58,7 +57,7 @@ export async function testGeminiModel() {
       errorMessage += ` Cause: ${error.cause.message}`;
     }
     // Check for common model not found errors specifically
-     const modelName = ai.getModel()?.name ?? 'default';
+    const modelName = ai?.getModel()?.name ?? 'default'; // Add null check for ai
     if (error.message?.includes('NOT_FOUND') || error.message?.includes('Model not found')) {
       errorMessage += ` (Is the model name '${modelName}' correct and available in your region/project?)`;
     }
