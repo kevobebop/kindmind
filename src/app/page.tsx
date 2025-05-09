@@ -2,16 +2,11 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type {
-  GenerateHomeworkAnswerOutput,
-} from '@/ai/flows/generate-homework-answer';
-import type { AsdTutorOutput } from '@/ai/flows/asd-tutor-flow';
-import type { GenerateLessonPlanOutput } from '@/ai/flows/generate-lesson-plan';
 import type { OrbiiInput, OrbiiOutput } from '@/ai/flows/orbiiFlow';
-
 import { orbiiFlow, getOrbiiGreeting } from '@/ai/flows/orbiiFlow';
-import { generateLessonPlan } from '@/ai/flows/generate-lesson-plan';
+import { generateLessonPlan, type GenerateLessonPlanOutput } from '@/ai/flows/generate-lesson-plan';
 import { generateProgressReport } from '@/ai/flows/generate-progress-report';
+import { testGeminiModel, testOpenAIModel } from '@/ai/testActions'; // Updated import path
 
 
 import {
@@ -42,39 +37,34 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { loadStripe } from '@stripe/stripe-js';
-import type { Stripe, StripeElements } from '@stripe/stripe-js';
-import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
+import type { Stripe, StripeElements } from '@stripe/stripe-js'; // Keep if CardElement used directly
+import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js'; // CardElement for direct use
 import { Progress } from "@/components/ui/progress";
 import Image from 'next/image';
-import { testGeminiModel, testOpenAIModel } from '@/ai/ai-instance';
 
 
 // Log for checking if Stripe public key is loaded on the client
-// This log is generally fine for debugging but ensure it doesn't cause issues if NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is sensitive during SSR
 if (typeof window !== 'undefined') {
-  console.log('Stripe Public Key (Client-side):', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+  // console.log('Stripe Public Key (Client-side):', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 }
-
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
 
 const Mascot = ({ talking, mood }: { talking: boolean; mood: string }) => {
-  let mascotImage = '/orbii_neutral.png'; // Default
-  if (mood === 'happy') mascotImage = '/orbii_happy.png';
-  if (mood === 'sad') mascotImage = '/orbii_sad.png';
-
-  // Fallback for server rendering or if images are not yet loaded
-  const [imageSrc, setImageSrc] = useState(mascotImage);
+  const [imageSrc, setImageSrc] = useState('/orbii_neutral.png'); // Default
+  
   useEffect(() => {
-    setImageSrc(mascotImage);
-  }, [mascotImage]);
-
+    let newImageSrc = '/orbii_neutral.png';
+    if (mood === 'happy') newImageSrc = '/orbii_happy.png';
+    if (mood === 'sad') newImageSrc = '/orbii_sad.png'; // Assuming you have orbii_sad.png
+    setImageSrc(newImageSrc);
+  }, [mood]);
 
   return (
     <div className={`relative w-32 h-32 md:w-48 md:h-48 mb-4 ${talking ? 'animate-bounce' : ''}`}>
-      <Image src={imageSrc} alt="Orbii Mascot" width={192} height={192} data-ai-hint="friendly robot" />
+      <Image src={imageSrc} alt="Orbii Mascot" width={192} height={192} data-ai-hint="friendly robot" priority />
     </div>
   );
 };
@@ -104,13 +94,30 @@ const CheckoutForm = ({ onSuccess, onError }: { onSuccess: () => void; onError: 
     }
 
     try {
-      // In a real app, you'd create a PaymentIntent on your server
-      // and use the clientSecret here. For this example, we'll simulate success.
+      // This is where you would typically call your backend to create a Checkout Session or PaymentIntent
+      // For this example, we simulate a call to a Firebase Function that creates a Stripe Checkout Session
+      // const response = await fetch('/api/create-stripe-checkout-session', { // Replace with your actual backend endpoint
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ priceId: 'YOUR_STRIPE_PRICE_ID' }), // Send price ID or other relevant data
+      // });
+      // const session = await response.json();
+
+      // if (session.error) {
+      //   throw new Error(session.error);
+      // }
+
+      // // Redirect to Stripe Checkout
+      // const result = await stripe.redirectToCheckout({ sessionId: session.sessionId });
+      // if (result.error) {
+      //   throw result.error;
+      // }
+      
+      // SIMPLIFIED SIMULATION FOR NOW:
       console.log("Simulating payment processing...");
       await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network latency
-
-      // Simulate successful payment
       onSuccess();
+
     } catch (error) {
       console.error("Payment failed:", error);
       onError(error);
@@ -132,8 +139,7 @@ const CheckoutForm = ({ onSuccess, onError }: { onSuccess: () => void; onError: 
 
 export default function Home() {
   const [question, setQuestion] = useState('');
-  const [topic, setTopic] = useState(''); // Added topic state
-  const [currentAnswer, setCurrentAnswer] = useState<GenerateHomeworkAnswerOutput | null>(null);
+  const [topic, setTopic] = useState(''); 
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const { toast } = useToast();
@@ -141,7 +147,7 @@ export default function Home() {
   const [isVoiceChatEnabled, setIsVoiceChatEnabled] = useState(false);
   const [currentLessonPlan, setCurrentLessonPlan] = useState<GenerateLessonPlanOutput | null>(null);
   const [userMood, setUserMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false); // Default to false
   const [showCheckout, setShowCheckout] = useState(false);
 
   const [isGuardianView, setIsGuardianView] = useState(false);
@@ -163,12 +169,14 @@ export default function Home() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isClient, setIsClient] = useState(false);
 
+  useEffect(() => {
+    setIsClient(true); // Indicate component has mounted on client
+  }, []);
 
   useEffect(() => {
-    setIsClient(true);
-    if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-      const errorMessage = "Stripe public key is not set. Payment functionality will be disabled. Please set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in your .env.local file and restart the server.";
-      console.error(errorMessage); // Moved console.error here
+    if (isClient && !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+      const errorMessage = "Stripe public key is not defined. Stripe functionality will be disabled. Please set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in your .env.local file and restart the server.";
+      console.error(errorMessage); 
       toast({
         variant: 'destructive',
         title: 'Stripe Configuration Error',
@@ -176,14 +184,17 @@ export default function Home() {
         duration: 10000,
       });
     }
-  }, [toast]);
+  }, [isClient, toast]);
 
 
   useEffect(() => {
     const fetchGreeting = async () => {
       setLoading(true);
       try {
-        const output = await getOrbiiGreeting({ isNewUser: conversationHistory.length === 0, lastSessionContext: conversationHistory.length > 1 ? conversationHistory.slice(-2)[0].content.substring(0,50) + "..." : undefined});
+        const output = await getOrbiiGreeting({ 
+          isNewUser: conversationHistory.length === 0, 
+          lastSessionContext: conversationHistory.length > 1 ? conversationHistory.findLast(msg => msg.role === 'orbii')?.content.substring(0,50) + "..." : undefined
+        });
         setOrbiiResponse(output.response);
         addToConversation({ role: 'orbii', content: output.response });
         if (isVoiceChatEnabled && output.response) speakText(output.response);
@@ -197,15 +208,15 @@ export default function Home() {
         setLoading(false);
       }
     };
-    if (isClient && conversationHistory.length === 0) { // Fetch greeting only on client, after initial mount and if no history
+    if (isClient && conversationHistory.length === 0) { 
         fetchGreeting();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient]); // Run once when isClient becomes true
+  }, [isClient]); 
 
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isClient && typeof window !== 'undefined') {
       const SpeechRecognitionService =
         window.SpeechRecognition || (window as any).webkitSpeechRecognition;
 
@@ -217,8 +228,8 @@ export default function Home() {
 
         recog.onresult = (event: SpeechRecognitionEvent) => {
           const transcript = event.results[0][0].transcript;
-          setQuestion(transcript);
-          handleOrbiiInteraction(transcript, imageUrl || undefined);
+          setQuestion(transcript); // Set the question state with the transcript
+          handleOrbiiInteraction(transcript, imageUrl || undefined); // Immediately process
           toast({ title: 'Voice Input Received', description: transcript });
           setIsListening(false);
         };
@@ -237,11 +248,11 @@ export default function Home() {
         };
         setRecognition(recog);
       } else {
-        console.warn("SpeechRecognition API not supported in this browser.");
+        if(isClient) console.warn("SpeechRecognition API not supported in this browser.");
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageUrl, toast]);
+  }, [isClient, imageUrl, toast]); // Re-initialize if imageUrl changes (though unlikely needed here)
 
 
   const speakText = useCallback((text: string) => {
@@ -254,7 +265,7 @@ export default function Home() {
       setIsOrbiiTalking(false);
       toast({ variant: 'destructive', title: 'Speech Error', description: 'Could not read the text aloud.' });
     };
-    window.speechSynthesis.cancel();
+    window.speechSynthesis.cancel(); 
     window.speechSynthesis.speak(utterance);
   }, [isVoiceChatEnabled, toast]);
 
@@ -264,7 +275,7 @@ export default function Home() {
         toast({title: "Nothing to send", description: "Please type a question or upload an image."});
         return;
     }
-    if (!isSubscribed && userInput.toLowerCase() !== 'test_subscription') {
+    if (!isSubscribed && userInput.toLowerCase() !== 'test_subscription_override') { // Added an override for testing
       toast({ variant: 'destructive', title: 'Subscription Required', description: 'Please subscribe for full access or start a free trial.' });
       setShowCheckout(true);
       return;
@@ -272,58 +283,48 @@ export default function Home() {
 
     setLoading(true);
     setOrbiiResponse(null);
-    setCurrentAnswer(null);
+    // setCurrentAnswer(null); // This state is not defined, consider removing or defining it if needed for other flows
     setCurrentLessonPlan(null);
 
     addToConversation({ role: 'user', content: userInput || "Image query", isImage: !!imageInputDataUrl });
-    if (imageInputDataUrl) {
-      // addToConversation({ role: 'user', content: imageInputDataUrl, isImage: true }); // Redundant if image shown in combined message
-    }
-
+    
     try {
       const orbiiInput: OrbiiInput = {
         type: imageInputDataUrl ? 'image' : 'text',
-        data: imageInputDataUrl || userInput, // Pass image data URI if available, otherwise text
-        intent: 'homework_help', // Default intent, could be made more dynamic
+        data: imageInputDataUrl || userInput, 
+        intent: 'homework_help', 
         userMood: userMood,
-        topic: topic || userInput, // Use specific topic if set, else user input
-        gradeLevel: "5th Grade", // Placeholder, ideally from user profile
-        learningStrengths: "Visual learner", // Placeholder
-        learningStruggles: "Math concepts", // Placeholder
-        isNewUser: conversationHistory.length <= 1, // Consider initial greeting as first interaction
-        lastSessionContext: conversationHistory.length > 1 ? conversationHistory.slice(-2).find(msg => msg.role === 'orbii')?.content.substring(0,50) + "..." : undefined
+        topic: topic || userInput.substring(0, 30), // Use specific topic or a snippet of user input
+        gradeLevel: "5th Grade", 
+        learningStrengths: "Visual learner", 
+        learningStruggles: "Math concepts", 
+        isNewUser: conversationHistory.length <= 1, 
+        lastSessionContext: conversationHistory.findLast(msg => msg.role === 'orbii')?.content.substring(0,50) + "...",
+        textContextForImage: imageInputDataUrl ? userInput : undefined
       };
-      if (imageInputDataUrl) {
-         orbiiInput.textContextForImage = userInput; // Ensure text input is passed as context for image
-      }
-
 
       const output = await orbiiFlow(orbiiInput);
       setOrbiiResponse(output.response);
       addToConversation({ role: 'orbii', content: output.response });
       if (isVoiceChatEnabled) speakText(output.response);
 
-      // Update progress metrics (simplified for demo)
       setMasteryLevel(prev => Math.min(100, prev + Math.floor(Math.random() * 5) + 3));
       setStudentProgressData(prev => {
         const lastEntry = prev.length > 0 ? prev[prev.length - 1] : { name: 'Week 0', questions: 0, mastery: 0 };
         const newQuestions = (lastEntry.questions || 0) + 1;
-        const newMastery = Math.min(100, (lastEntry.mastery || 0) + Math.floor(Math.random() * 5) + 3); // Ensure mastery doesn't exceed 100
-        const weekNumber = prev.length + 1; // Simple week increment
+        const newMastery = Math.min(100, (lastEntry.mastery || 0) + Math.floor(Math.random() * 5) + 3);
+        const weekNumber = prev.length + 1;
         return [...prev, { name: `Week ${weekNumber}`, questions: newQuestions, mastery: newMastery }];
       });
 
-
-      // Auto-generate a lesson plan if Orbii's response is substantial
-      if (output.response.length > 20 && (topic || userInput)) { // Arbitrary length check
+      if (output.response.length > 20 && (topic || userInput)) { 
         const lessonPlanResponse = await generateLessonPlan({
           topic: topic || userInput,
-          studentLevel: "intermediate", // Placeholder
-          learningStyle: "visual", // Placeholder
+          studentLevel: "intermediate", 
+          learningStyle: "visual", 
         });
         setCurrentLessonPlan(lessonPlanResponse);
       }
-
 
     } catch (error: any) {
       console.error("Error interacting with Orbii:", error);
@@ -334,11 +335,11 @@ export default function Home() {
       toast({ variant: 'destructive', title: 'Orbii Error', description: errorMessage });
     } finally {
       setLoading(false);
-      setQuestion('');
-      // setImageUrl(''); // Keep image URL until user explicitly clears or sends new one
-      // setTopic(''); // Keep topic until user changes it
+      setQuestion(''); // Clear question input after sending
+      // Consider clearing imageUrl as well, or provide a clear button
     }
-  }, [isSubscribed, toast, userMood, isVoiceChatEnabled, speakText, topic, conversationHistory]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSubscribed, toast, userMood, isVoiceChatEnabled, speakText, topic, conversationHistory]); // Removed imageUrl from deps to avoid re-creating function unnecessarily
 
   const addToConversation = (message: { role: 'user' | 'orbii'; content: string; isImage?: boolean }) => {
     setConversationHistory(prev => [...prev, message]);
@@ -376,7 +377,7 @@ export default function Home() {
 
    useEffect(() => {
     const getCameraPerm = async () => {
-      if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
+      if (isClient && typeof navigator !== 'undefined' && navigator.mediaDevices) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: true });
           setHasCameraPermission(true);
@@ -387,12 +388,12 @@ export default function Home() {
           console.error("Error accessing camera:", err);
           setHasCameraPermission(false);
         }
-      } else {
+      } else if (isClient) {
         setHasCameraPermission(false);
-        console.log("navigator.mediaDevices not available");
+        // console.log("navigator.mediaDevices not available");
       }
     };
-    if(isClient) { // Only run on client
+    if(isClient) { 
         getCameraPerm();
     }
   }, [isClient]);
@@ -427,13 +428,12 @@ export default function Home() {
         setIsListening(false);
       }
     } else if (isListening && recognition) {
-      recognition.stop();
+      recognition.stop(); // Should stop listening
       setIsListening(false);
-    } else if (!recognition) {
+    } else if (!recognition && isClient) { // Only toast if client and recognition is not set up
         toast({ variant: 'destructive', title: 'Voice Not Available', description: 'Speech recognition is not supported or enabled in your browser.' });
     }
   };
-
 
   if (!isClient) {
     return (
@@ -453,7 +453,7 @@ export default function Home() {
           <h1 className="text-4xl font-bold text-primary">Kind Mind Learning</h1>
         </div>
          <Mascot talking={isOrbiiTalking} mood={userMood} />
-        {orbiiResponse && !loading && conversationHistory.length > 0 && conversationHistory[conversationHistory.length-1].role === 'orbii' && (
+        {orbiiResponse && !loading && conversationHistory.length > 0 && conversationHistory.findLast(msg => msg.role === 'orbii')?.content === orbiiResponse && (
           <Card className="bg-primary/10 border-primary/30 shadow-lg w-full max-w-md mx-auto mt-2">
             <CardContent className="p-3">
               <p className="text-sm text-foreground text-center whitespace-pre-wrap">{orbiiResponse}</p>
@@ -679,12 +679,13 @@ export default function Home() {
                                 setLoading(true);
                                 const reportOutput = await generateProgressReport({
                                     sessions: conversationHistory.filter(s=>s.role === 'orbii').slice(-5).map(s => ({
-                                        topic: topic || "General", // Use current topic or general
-                                        successLevel: Math.floor(Math.random() * 3) + 3, // Random success for demo
+                                        topic: topic || "General", 
+                                        successLevel: Math.floor(Math.random() * 3) + 3, 
                                         notes: s.content.substring(0,100) + "..."
                                     }))
                                 });
-                                toast({ title: "Full Progress Report", description: reportOutput.report, duration: 15000, className:"max-w-md" });
+                                // Displaying long report in toast might not be ideal. Consider a dialog.
+                                toast({ title: "Full Progress Report", description: reportOutput.report, duration: 15000, className:"max-w-md whitespace-pre-wrap" });
                             } catch (e : any) {
                                 toast({ variant: "destructive", title: "Report Error", description: e.message });
                             } finally {
@@ -725,7 +726,7 @@ export default function Home() {
                         const reportOutput = await generateProgressReport({
                              sessions: conversationHistory.filter(s=>s.role === 'orbii').slice(-10).map(s => ({
                                 topic: topic || "General",
-                                successLevel: Math.floor(Math.random() * 3) + 3, // Random success for demo
+                                successLevel: Math.floor(Math.random() * 3) + 3, 
                                 notes: s.content.substring(0,100) + "..."
                             }))
                         });
@@ -785,25 +786,14 @@ export default function Home() {
   );
 }
 
-const StripeCheckout = ({ onSuccess, onError }: { onSuccess: () => void; onError: (error: any) => void }) => {
-  if (!stripePromise) {
-    return <p className="text-destructive text-center">Stripe is not available. Please configure the Stripe public key.</p>;
-  }
-  return (
-    <Elements stripe={stripePromise}>
-      <CheckoutForm onSuccess={onSuccess} onError={onError} />
-    </Elements>
-  );
-};
-
-// Helper to ensure client-side only execution for certain components/hooks
-const ClientOnly: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-  if (!hasMounted) {
-    return null;
-  }
-  return <>{children}</>;
-};
+// StripeCheckout component is not directly used in Home, but available if needed elsewhere or for a different checkout flow.
+// const StripeCheckout = ({ onSuccess, onError }: { onSuccess: () => void; onError: (error: any) => void }) => {
+//   if (!stripePromise) {
+//     return <p className="text-destructive text-center">Stripe is not available. Please configure the Stripe public key.</p>;
+//   }
+//   return (
+//     <Elements stripe={stripePromise}>
+//       <CheckoutForm onSuccess={onSuccess} onError={onError} />
+//     </Elements>
+//   );
+// };
