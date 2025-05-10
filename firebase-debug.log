@@ -1,0 +1,104 @@
+[debug] [2025-05-10T07:50:21.456Z] ----------------------------------------------------------------------
+[debug] [2025-05-10T07:50:21.459Z] Command:       /nix/store/rbdrkcs5kkwpalxcd7c6bnm33lk2955n-nodejs-20.19.0/bin/node /home/user/.global_modules/bin/firebase init
+[debug] [2025-05-10T07:50:21.460Z] CLI Version:   14.3.1
+[debug] [2025-05-10T07:50:21.460Z] Platform:      linux
+[debug] [2025-05-10T07:50:21.460Z] Node Version:  v20.19.0
+[debug] [2025-05-10T07:50:21.460Z] Time:          Sat May 10 2025 07:50:21 GMT+0000 (Coordinated Universal Time)
+[debug] [2025-05-10T07:50:21.461Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-05-10T07:50:21.965Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-05-10T07:51:36.951Z] Running auto auth
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  /home/user/studio
+
+Before we get started, keep in mind:
+
+  * You are initializing within an existing Firebase project directory
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] but for now we'll just set up a default project.
+[info] 
+[debug] [2025-05-10T07:56:01.645Z] Using project from CLI flag: kindmind-learning-app
+[debug] [2025-05-10T07:56:01.648Z] No OAuth tokens found
+[debug] [2025-05-10T07:56:01.654Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/kindmind-learning-app [none]
+[debug] [2025-05-10T07:56:02.035Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/kindmind-learning-app 403
+[debug] [2025-05-10T07:56:02.035Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/kindmind-learning-app {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[debug] [2025-05-10T07:56:02.036Z] Request to https://firebase.googleapis.com/v1beta1/projects/kindmind-learning-app had HTTP Error: 403, The caller does not have permission
+[debug] [2025-05-10T07:56:02.122Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/kindmind-learning-app had HTTP Error: 403, The caller does not have permission
+    at responseToError (/home/user/.global_modules/lib/node_modules/firebase-tools/lib/responseToError.js:52:12)
+    at RetryOperation._fn (/home/user/.global_modules/lib/node_modules/firebase-tools/lib/apiv2.js:312:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[error] 
+[error] Error: Failed to get Firebase project kindmind-learning-app. Please make sure the project exists and your account has permission to access it.
+[debug] [2025-05-10T07:57:47.478Z] ----------------------------------------------------------------------
+[debug] [2025-05-10T07:57:47.481Z] Command:       /nix/store/rbdrkcs5kkwpalxcd7c6bnm33lk2955n-nodejs-20.19.0/bin/node /home/user/.global_modules/bin/firebase deploy
+[debug] [2025-05-10T07:57:47.482Z] CLI Version:   14.3.1
+[debug] [2025-05-10T07:57:47.482Z] Platform:      linux
+[debug] [2025-05-10T07:57:47.482Z] Node Version:  v20.19.0
+[debug] [2025-05-10T07:57:47.482Z] Time:          Sat May 10 2025 07:57:47 GMT+0000 (Coordinated Universal Time)
+[debug] [2025-05-10T07:57:47.483Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-05-10T07:57:47.946Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-05-10T07:57:47.947Z] > authorizing via signed-in user (kevwallace1714@gmail.com)
+[debug] [2025-05-10T07:57:47.947Z] [iam] checking project kindmind-learning-app for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]
+[debug] [2025-05-10T07:57:47.948Z] No OAuth tokens found
+[debug] [2025-05-10T07:57:47.949Z] No OAuth tokens found
+[debug] [2025-05-10T07:57:47.949Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-05-10T07:57:47.949Z] > authorizing via signed-in user (kevwallace1714@gmail.com)
+[debug] [2025-05-10T07:57:47.951Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/kindmind-learning-app:testIamPermissions [none]
+[debug] [2025-05-10T07:57:47.951Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/kindmind-learning-app:testIamPermissions x-goog-quota-user=projects/kindmind-learning-app
+[debug] [2025-05-10T07:57:47.951Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/kindmind-learning-app:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2025-05-10T07:57:48.345Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/kindmind-learning-app:testIamPermissions 200
+[debug] [2025-05-10T07:57:48.346Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/kindmind-learning-app:testIamPermissions {}
+[debug] [2025-05-10T07:57:48.347Z] [iam] error while checking permissions, command may fail: Authorization failed. This account is missing the following required permissions on project kindmind-learning-app:
+
+  cloudfunctions.functions.create
+  cloudfunctions.functions.delete
+  cloudfunctions.functions.get
+  cloudfunctions.functions.list
+  cloudfunctions.functions.update
+  cloudfunctions.operations.get
+  datastore.indexes.create
+  datastore.indexes.delete
+  datastore.indexes.list
+  datastore.indexes.update
+  firebase.projects.get
+  firebasehosting.sites.update
+  firebaserules.releases.create
+  firebaserules.releases.update
+  firebaserules.rulesets.create
+[debug] [2025-05-10T07:57:48.348Z] No OAuth tokens found
+[debug] [2025-05-10T07:57:48.348Z] No OAuth tokens found
+[debug] [2025-05-10T07:57:48.348Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-05-10T07:57:48.348Z] > authorizing via signed-in user (kevwallace1714@gmail.com)
+[debug] [2025-05-10T07:57:48.349Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/kindmind-learning-app/serviceAccounts/kindmind-learning-app@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2025-05-10T07:57:48.349Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/kindmind-learning-app/serviceAccounts/kindmind-learning-app@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2025-05-10T07:57:48.466Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/kindmind-learning-app/serviceAccounts/kindmind-learning-app@appspot.gserviceaccount.com:testIamPermissions 404
+[debug] [2025-05-10T07:57:48.466Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/kindmind-learning-app/serviceAccounts/kindmind-learning-app@appspot.gserviceaccount.com:testIamPermissions {"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}}
+[debug] [2025-05-10T07:57:48.467Z] [functions] service account IAM check errored, deploy may fail: Request to https://iam.googleapis.com/v1/projects/kindmind-learning-app/serviceAccounts/kindmind-learning-app@appspot.gserviceaccount.com:testIamPermissions had HTTP Error: 404, Unknown service account {"name":"FirebaseError","children":[],"context":{"body":{"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}},"response":{"statusCode":404}},"exit":1,"message":"Request to https://iam.googleapis.com/v1/projects/kindmind-learning-app/serviceAccounts/kindmind-learning-app@appspot.gserviceaccount.com:testIamPermissions had HTTP Error: 404, Unknown service account","status":404}
+[debug] [2025-05-10T07:57:48.468Z] No OAuth tokens found
+[debug] [2025-05-10T07:57:48.468Z] No OAuth tokens found
+[debug] [2025-05-10T07:57:48.468Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-05-10T07:57:48.469Z] > authorizing via signed-in user (kevwallace1714@gmail.com)
+[debug] [2025-05-10T07:57:48.469Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/kindmind-learning-app [none]
+[debug] [2025-05-10T07:57:48.730Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/kindmind-learning-app 403
+[debug] [2025-05-10T07:57:48.730Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/kindmind-learning-app {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[debug] [2025-05-10T07:57:48.734Z] Request to https://firebase.googleapis.com/v1beta1/projects/kindmind-learning-app had HTTP Error: 403, The caller does not have permission
+[debug] [2025-05-10T07:57:48.816Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/kindmind-learning-app had HTTP Error: 403, The caller does not have permission
+    at responseToError (/home/user/.global_modules/lib/node_modules/firebase-tools/lib/responseToError.js:52:12)
+    at RetryOperation._fn (/home/user/.global_modules/lib/node_modules/firebase-tools/lib/apiv2.js:312:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[error] 
+[error] Error: Failed to get Firebase project kindmind-learning-app. Please make sure the project exists and your account has permission to access it.
