@@ -1,7 +1,6 @@
 /**
  * @fileOverview Initializes and exports the Genkit AI instance.
  * This file should primarily focus on the AI configuration.
- * Server Actions callable from client components should be in separate files.
  */
 
 import {genkit} from 'genkit';
@@ -10,7 +9,7 @@ import {googleAI} from '@genkit-ai/googleai';
 // import { geminiPro, gemini15Flash } from '@genkit-ai/googleai';
 
 // Ensure API keys are loaded (add console logs for debugging if needed)
-// console.log('Preview GOOGLE_GENAI_API_KEY:', process.env.GOOGLE_GENAI_API_KEY);
+console.log('Preview GOOGLE_GENAI_API_KEY:', process.env.GOOGLE_GENAI_API_KEY);
 // console.log('OPENAI_API_KEY loaded:', !!process.env.OPENAI_API_KEY);
 
 
