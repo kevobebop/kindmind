@@ -1,4 +1,3 @@
-'use server';
 /**
  * @fileOverview Initializes and exports the Genkit AI instance.
  * This file should primarily focus on the AI configuration.
@@ -31,7 +30,7 @@ const configureGenkit = () => {
 
   return genkit({
     plugins: plugins,
-    // model: gemini15Flash, // Example: Set a default model for the app if desired. Or 'gemini-1.5-flash-latest' string
+    // model: 'gemini-1.5-flash-latest', // Example: Set a default model. Gemini Pro is 'gemini-pro'
     logLevel: 'debug', // Enable debug logging
     enableTracingAndMetrics: true, // Useful for development
     });
