@@ -41,6 +41,7 @@ import type { Stripe, StripeElements } from '@stripe/stripe-js'; // Keep if Card
 import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js'; // CardElement for direct use
 import { Progress } from "@/components/ui/progress";
 import Image from 'next/image';
+import { Tldraw } from 'tldraw'
 
 
 // Log for checking if Stripe public key is loaded on the client
@@ -638,7 +639,10 @@ export default function Home() {
                         <DialogTitle>Orbii's Whiteboard</DialogTitle>
                         <DialogDescription>Let's visualize this concept! Orbii might draw something here for you.</DialogDescription>
                         </DialogHeader>
-                        <iframe title="Excalidraw Whiteboard" src="https://excalidraw.com/?theme=light" className="w-full h-[calc(100%-5rem)] border-0 rounded-md"></iframe>
+                        {/* Replace iframe with Tldraw component */}
+                        <div style={{ width: '100%', height: 'calc(100% - 5rem)' }}>
+                            <Tldraw />
+                        </div>
                     </DialogContent>
                 </Dialog>
                  <Dialog>
