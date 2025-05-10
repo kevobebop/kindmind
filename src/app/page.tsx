@@ -6,7 +6,7 @@ import type { OrbiiInput, OrbiiOutput } from '@/ai/flows/orbiiFlow';
 import { orbiiFlow, getOrbiiGreeting } from '@/ai/flows/orbiiFlow';
 import { generateLessonPlan, type GenerateLessonPlanOutput } from '@/ai/flows/generate-lesson-plan';
 import { generateProgressReport } from '@/ai/flows/generate-progress-report';
-import { testGeminiModel, testOpenAIModel } from '@/ai/testActions'; // Updated import path
+import { testGeminiModel, testOpenAIModel } from '@/ai/testActions';
 
 
 import {
@@ -37,29 +37,25 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { loadStripe } from '@stripe/stripe-js';
-import type { Stripe, StripeElements } from '@stripe/stripe-js'; // Keep if CardElement used directly
-import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js'; // CardElement for direct use
+import type { Stripe, StripeElements } from '@stripe/stripe-js';
+import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import { Progress } from "@/components/ui/progress";
 import Image from 'next/image';
-import { Tldraw } from 'tldraw'
+import { Tldraw } from 'tldraw';
+import { generateMiniQuiz } from '@/ai/flows/generate-mini-quiz';
 
-
-// Log for checking if Stripe public key is loaded on the client
-if (typeof window !== 'undefined') {
-  // console.log('Stripe Public Key (Client-side):', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-}
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
 
 const Mascot = ({ talking, mood }: { talking: boolean; mood: string }) => {
-  const [imageSrc, setImageSrc] = useState('/orbii_neutral.png'); // Default
+  const [imageSrc, setImageSrc] = useState('/orbii_neutral.png'); 
   
   useEffect(() => {
     let newImageSrc = '/orbii_neutral.png';
     if (mood === 'happy') newImageSrc = '/orbii_happy.png';
-    if (mood === 'sad') newImageSrc = '/orbii_sad.png'; // Assuming you have orbii_sad.png
+    if (mood === 'sad') newImageSrc = '/orbii_sad.png';
     setImageSrc(newImageSrc);
   }, [mood]);
 
@@ -95,28 +91,8 @@ const CheckoutForm = ({ onSuccess, onError }: { onSuccess: () => void; onError: 
     }
 
     try {
-      // This is where you would typically call your backend to create a Checkout Session or PaymentIntent
-      // For this example, we simulate a call to a Firebase Function that creates a Stripe Checkout Session
-      // const response = await fetch('/api/create-stripe-checkout-session', { // Replace with your actual backend endpoint
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ priceId: 'YOUR_STRIPE_PRICE_ID' }), // Send price ID or other relevant data
-      // });
-      // const session = await response.json();
-
-      // if (session.error) {
-      //   throw new Error(session.error);
-      // }
-
-      // // Redirect to Stripe Checkout
-      // const result = await stripe.redirectToCheckout({ sessionId: session.sessionId });
-      // if (result.error) {
-      //   throw result.error;
-      // }
-      
-      // SIMPLIFIED SIMULATION FOR NOW:
       console.log("Simulating payment processing...");
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network latency
+      await new Promise(resolve => setTimeout(resolve, 2000)); 
       onSuccess();
 
     } catch (error) {
@@ -148,8 +124,9 @@ export default function Home() {
   const [isVoiceChatEnabled, setIsVoiceChatEnabled] = useState(false);
   const [currentLessonPlan, setCurrentLessonPlan] = useState<GenerateLessonPlanOutput | null>(null);
   const [userMood, setUserMood] = useState<'happy' | 'neutral' | 'sad'>('neutral');
-  const [isSubscribed, setIsSubscribed] = useState(false); // Default to false
+  const [isSubscribed, setIsSubscribed] = useState(false); 
   const [showCheckout, setShowCheckout] = useState(false);
+  const [currentQuiz, setCurrentQuiz] = useState<any | null>(null); 
 
   const [isGuardianView, setIsGuardianView] = useState(false);
   const [studentProgressData, setStudentProgressData] = useState([
@@ -171,7 +148,7 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true); // Indicate component has mounted on client
+    setIsClient(true); 
   }, []);
 
   useEffect(() => {
@@ -229,8 +206,8 @@ export default function Home() {
 
         recog.onresult = (event: SpeechRecognitionEvent) => {
           const transcript = event.results[0][0].transcript;
-          setQuestion(transcript); // Set the question state with the transcript
-          handleOrbiiInteraction(transcript, imageUrl || undefined); // Immediately process
+          setQuestion(transcript); 
+          handleOrbiiInteraction(transcript, imageUrl || undefined); 
           toast({ title: 'Voice Input Received', description: transcript });
           setIsListening(false);
         };
@@ -253,7 +230,7 @@ export default function Home() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, imageUrl, toast]); // Re-initialize if imageUrl changes (though unlikely needed here)
+  }, [isClient, imageUrl, toast]);
 
 
   const speakText = useCallback((text: string) => {
@@ -271,12 +248,12 @@ export default function Home() {
   }, [isVoiceChatEnabled, toast]);
 
 
-  const handleOrbiiInteraction = useCallback(async (userInput: string, imageInputDataUrl?: string) => {
+  const handleOrbiiInteraction = useCallback(async (userInput: string, imageInputDataUrl?: string, intent?: string) => {
     if (!userInput && !imageInputDataUrl) {
         toast({title: "Nothing to send", description: "Please type a question or upload an image."});
         return;
     }
-    if (!isSubscribed && userInput.toLowerCase() !== 'test_subscription_override') { // Added an override for testing
+    if (!isSubscribed && userInput.toLowerCase() !== 'test_subscription_override') { 
       toast({ variant: 'destructive', title: 'Subscription Required', description: 'Please subscribe for full access or start a free trial.' });
       setShowCheckout(true);
       return;
@@ -284,18 +261,18 @@ export default function Home() {
 
     setLoading(true);
     setOrbiiResponse(null);
-    // setCurrentAnswer(null); // This state is not defined, consider removing or defining it if needed for other flows
     setCurrentLessonPlan(null);
 
     addToConversation({ role: 'user', content: userInput || "Image query", isImage: !!imageInputDataUrl });
     
     try {
+      const currentTopic = topic || userInput.substring(0, 30);
       const orbiiInput: OrbiiInput = {
         type: imageInputDataUrl ? 'image' : 'text',
         data: imageInputDataUrl || userInput, 
-        intent: 'homework_help', 
+        intent: (intent as OrbiiInput['intent']) || 'homework_help', 
         userMood: userMood,
-        topic: topic || userInput.substring(0, 30), // Use specific topic or a snippet of user input
+        topic: currentTopic, 
         gradeLevel: "5th Grade", 
         learningStrengths: "Visual learner", 
         learningStruggles: "Math concepts", 
@@ -318,9 +295,9 @@ export default function Home() {
         return [...prev, { name: `Week ${weekNumber}`, questions: newQuestions, mastery: newMastery }];
       });
 
-      if (output.response.length > 20 && (topic || userInput)) { 
+      if (output.response.length > 20 && currentTopic) { 
         const lessonPlanResponse = await generateLessonPlan({
-          topic: topic || userInput,
+          topic: currentTopic,
           studentLevel: "intermediate", 
           learningStyle: "visual", 
         });
@@ -336,11 +313,10 @@ export default function Home() {
       toast({ variant: 'destructive', title: 'Orbii Error', description: errorMessage });
     } finally {
       setLoading(false);
-      setQuestion(''); // Clear question input after sending
-      // Consider clearing imageUrl as well, or provide a clear button
+      setQuestion(''); 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSubscribed, toast, userMood, isVoiceChatEnabled, speakText, topic, conversationHistory]); // Removed imageUrl from deps to avoid re-creating function unnecessarily
+  }, [isSubscribed, toast, userMood, isVoiceChatEnabled, speakText, topic, conversationHistory]);
 
   const addToConversation = (message: { role: 'user' | 'orbii'; content: string; isImage?: boolean }) => {
     setConversationHistory(prev => [...prev, message]);
@@ -391,7 +367,6 @@ export default function Home() {
         }
       } else if (isClient) {
         setHasCameraPermission(false);
-        // console.log("navigator.mediaDevices not available");
       }
     };
     if(isClient) { 
@@ -429,9 +404,9 @@ export default function Home() {
         setIsListening(false);
       }
     } else if (isListening && recognition) {
-      recognition.stop(); // Should stop listening
+      recognition.stop(); 
       setIsListening(false);
-    } else if (!recognition && isClient) { // Only toast if client and recognition is not set up
+    } else if (!recognition && isClient) { 
         toast({ variant: 'destructive', title: 'Voice Not Available', description: 'Speech recognition is not supported or enabled in your browser.' });
     }
   };
@@ -445,10 +420,13 @@ export default function Home() {
     );
   }
 
-
+  // IMPORTANT: Check for syntax errors (unclosed parentheses, braces, etc.)
+  // in the JavaScript code ABOVE this return statement if you are getting
+  // "Unexpected token div. Expected jsx identifier" or similar errors.
+  // The error is likely NOT in the JSX itself but in the JS that precedes it.
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-gradient-to-br from-background to-secondary/50 px-2 md:px-4">
-      <header className="w-full max-w-3xl mb-6 text-center">
+      <header className="w-full max-w-3xl text-center mb-6">
         <div className="flex justify-center items-center mb-2">
          <Image src="/your-logo.png" alt="Kind Mind Learning Logo" width={64} height={64} className="mr-3" data-ai-hint="brain logo"/>
           <h1 className="text-4xl font-bold text-primary">Kind Mind Learning</h1>
@@ -463,8 +441,8 @@ export default function Home() {
         )}
       </header>
 
-      <main className="w-full max-w-3xl flex-1 space-y-6">
-        {!isSubscribed && (
+      <main className="w-full max-w-3xl flex-1 flex flex-col items-center space-y-6">
+        {!isSubscribed && stripePromise && (
           <Card className="shadow-xl border-primary/50">
             <CardHeader>
               <CardTitle className="text-2xl text-center text-primary">Unlock Orbii's Full Potential!</CardTitle>
@@ -490,7 +468,6 @@ export default function Home() {
             </CardContent>
           </Card>
         )}
-
         {showCheckout && stripePromise && (
           <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
             <DialogContent>
@@ -507,10 +484,9 @@ export default function Home() {
           </Dialog>
         )}
 
-
         {isSubscribed && (
           <>
-            <Card className="shadow-lg max-h-96 overflow-y-auto p-4 space-y-3 bg-background/70 scroll-smooth">
+            <Card className="shadow-lg max-h-96 overflow-y-auto p-4 space-y-3 bg-background/70 scroll-smooth w-full">
               <CardHeader className="p-2 sticky top-0 bg-background/80 backdrop-blur-sm z-10">
                 <CardTitle className="text-lg">Conversation with Orbii</CardTitle>
               </CardHeader>
@@ -518,7 +494,7 @@ export default function Home() {
                 {conversationHistory.map((msg, index) => (
                   <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[70%] p-2 rounded-lg shadow ${msg.role === 'user' ? 'bg-primary/80 text-primary-foreground' : 'bg-muted'}`}>
-                      {msg.isImage && msg.content.startsWith('data:image') ? <Image src={msg.content} alt="User upload" width={200} height={200} className="rounded-md object-contain max-h-48" data-ai-hint="homework image" /> : <p className="text-sm whitespace-pre-wrap">{msg.content}</p>}
+                      {msg.isImage && msg.content.startsWith('data:image') ? <Image src={msg.content} alt="User upload" width={200} height={200} className="rounded-md object-contain max-h-48" data-ai-hint="homework image"/> : <p className="text-sm whitespace-pre-wrap">{msg.content}</p>}
                     </div>
                   </div>
                 ))}
@@ -533,7 +509,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="shadow-xl sticky bottom-2 bg-background/90 backdrop-blur-sm p-1 md:p-2 z-20">
+            <Card className="shadow-xl w-full bg-background/90 backdrop-blur-sm p-1 md:p-2 z-20">
               <CardContent className="p-2 md:p-4 space-y-3">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
                     <Input
@@ -565,6 +541,39 @@ export default function Home() {
                   />
                   <Button onClick={() => handleOrbiiInteraction(question, imageUrl || undefined)} disabled={loading || (!question && !imageUrl)} size="icon" className="h-10 w-10 md:h-12 md:w-12 bg-primary hover:bg-primary/90 shrink-0">
                     <Send className="h-5 w-5 md:h-6 md:w-6"/>
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <Button variant="outline" size="sm" onClick={() => handleOrbiiInteraction(question, imageUrl || undefined, 'explain')} disabled={loading || (!question && !imageUrl)}>
+                    Explain This
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleOrbiiInteraction(question, imageUrl || undefined, 'example')} disabled={loading || (!question && !imageUrl)}>
+                    Give an Example
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleOrbiiInteraction(question, imageUrl || undefined, 'summarize')} disabled={loading || (!question && !imageUrl)}>
+                    Summarize
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    const currentTopic = topic || conversationHistory.findLast(msg => msg.role === 'user')?.content || "General";
+                    if (!currentTopic && conversationHistory.length === 0) {
+                       toast({ title: "Needs Context", description: "Ask about a topic first to generate a quiz." });
+                       return;
+                    }
+                    setLoading(true);
+                    try {
+                      const quizResponse = await generateMiniQuiz({
+                         topic: currentTopic,
+                         difficulty: "easy", 
+                      });
+                      setCurrentQuiz(quizResponse); // Save the whole response
+                      toast({ title: "Quiz Generated", description: "Ready to test your knowledge!" });
+                    } catch (e: any) {
+                       toast({ variant: 'destructive', title: 'Quiz Error', description: e.message || "Could not generate quiz." });
+                    } finally {
+                       setLoading(false);
+                    }
+                  }} disabled={loading}>
+                    Quiz Me
                   </Button>
                 </div>
                 <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -607,12 +616,10 @@ export default function Home() {
                         <video ref={videoRef} className="w-full aspect-video rounded-md bg-black" autoPlay muted playsInline />
                     </div>
                  )}
-
-
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-4 w-full">
                  <Dialog>
                     <DialogTrigger asChild>
                         <Button variant="outline" className="w-full justify-start py-6 text-base"><BookOpen className="mr-3 h-5 w-5 text-primary" />View Lesson Plan</Button>
@@ -634,13 +641,12 @@ export default function Home() {
                     <DialogTrigger asChild>
                         <Button variant="outline" className="w-full justify-start py-6 text-base"><Palette className="mr-3 h-5 w-5 text-primary" />Orbii's Whiteboard</Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-3xl h-[80vh]">
+                    <DialogContent className="max-w-3xl h-[80vh] w-[90vw]">
                         <DialogHeader>
                         <DialogTitle>Orbii's Whiteboard</DialogTitle>
                         <DialogDescription>Let's visualize this concept! Orbii might draw something here for you.</DialogDescription>
                         </DialogHeader>
-                        {/* Replace iframe with Tldraw component */}
-                        <div style={{ width: '100%', height: 'calc(100% - 5rem)' }}>
+                        <div style={{ position: 'relative', width: '100%', height: 'calc(100% - 6rem)' }}>
                             <Tldraw />
                         </div>
                     </DialogContent>
@@ -688,7 +694,6 @@ export default function Home() {
                                         notes: s.content.substring(0,100) + "..."
                                     }))
                                 });
-                                // Displaying long report in toast might not be ideal. Consider a dialog.
                                 toast({ title: "Full Progress Report", description: reportOutput.report, duration: 15000, className:"max-w-md whitespace-pre-wrap" });
                             } catch (e : any) {
                                 toast({ variant: "destructive", title: "Report Error", description: e.message });
@@ -702,8 +707,31 @@ export default function Home() {
                 </Dialog>
             </div>
 
+            {currentQuiz && currentQuiz.quiz && (
+              <Dialog open={!!currentQuiz} onOpenChange={(isOpen) => !isOpen && setCurrentQuiz(null)}>
+                <DialogContent className="max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Quiz Time!</DialogTitle>
+                    <DialogDescription>Test your understanding:</DialogDescription>
+                  </DialogHeader>
+                  <div className="prose prose-sm dark:prose-invert max-h-[60vh] overflow-y-auto p-1">
+                     {Array.isArray(currentQuiz.quiz) ? currentQuiz.quiz.map((item: string, index: number) => (
+                       <div key={index} className="mb-2">
+                         <p>{item}</p>
+                       </div>
+                     )) : <p>Quiz content is not in the expected format.</p>}
+                  </div>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button onClick={() => setCurrentQuiz(null)}>Close Quiz</Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
 
-            <Card className="mt-6 shadow-md">
+
+            <Card className="mt-6 shadow-md w-full">
               <CardHeader className="flex flex-row items-center justify-between p-4">
                 <CardTitle className="text-lg">Guardian Tools</CardTitle>
                 <div className="flex items-center space-x-2">
@@ -746,7 +774,6 @@ export default function Home() {
                 </CardContent>
               )}
             </Card>
-
           </>
         )}
       </main>
@@ -789,15 +816,3 @@ export default function Home() {
     </div>
   );
 }
-
-// StripeCheckout component is not directly used in Home, but available if needed elsewhere or for a different checkout flow.
-// const StripeCheckout = ({ onSuccess, onError }: { onSuccess: () => void; onError: (error: any) => void }) => {
-//   if (!stripePromise) {
-//     return <p className="text-destructive text-center">Stripe is not available. Please configure the Stripe public key.</p>;
-//   }
-//   return (
-//     <Elements stripe={stripePromise}>
-//       <CheckoutForm onSuccess={onSuccess} onError={onError} />
-//     </Elements>
-//   );
-// };
