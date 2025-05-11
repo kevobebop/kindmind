@@ -3,39 +3,50 @@
  * This file should primarily focus on the AI configuration.
  */
 
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
-// Ensure to import specific models if needed by default configurations, e.g.
-// import { geminiPro, gemini15Flash } from '@genkit-ai/googleai';
+// IMPORTANT: This file should NOT have 'use server' or 'use client' at the top.
+// It is a module for configuring and exporting the Genkit instance.
+
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 
 // Ensure API keys are loaded (add console logs for debugging if needed)
 console.log('Preview GOOGLE_GENAI_API_KEY:', process.env.GOOGLE_GENAI_API_KEY);
-// console.log('OPENAI_API_KEY loaded:', !!process.env.OPENAI_API_KEY);
-
 
 // Configure Genkit
-const configureGenkit = () => {
+const configureGenkitInstance = () => {
   const plugins = [];
   if (process.env.GOOGLE_GENAI_API_KEY) {
-    plugins.push(googleAI({apiKey: process.env.GOOGLE_GENAI_API_KEY}));
+    plugins.push(googleAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY }));
+    console.log('Google AI plugin configured.');
   } else {
     console.warn(
       'GOOGLE_GENAI_API_KEY is not set. Google AI features will be unavailable.',
     );
   }
 
-  // Add other plugins like OpenAI if needed and configured
-  // Example: if (process.env.OPENAI_API_KEY) { plugins.push(openai({apiKey: process.env.OPENAI_API_KEY})); }
-
-  return genkit({
-    plugins: plugins,
-    // model: 'gemini-1.5-flash-latest', // Example: Set a default model. Gemini Pro is 'gemini-pro'
-    logLevel: 'debug', // Enable debug logging
-    enableTracingAndMetrics: true, // Useful for development
+  try {
+    const instance = genkit({
+      plugins: plugins,
+      logLevel: 'debug',
+      enableTracingAndMetrics: true,
     });
+    if (!instance) {
+      console.error("Genkit instance failed to initialize!");
+      // Return a placeholder or throw to prevent undefined behavior
+      // For now, let's throw so it's obvious if initialization fails.
+      throw new Error("Failed to initialize Genkit instance.");
+    }
+    console.log("Genkit instance configured successfully.");
+    return instance;
+  } catch (error) {
+    console.error("Error during Genkit initialization:", error);
+    // Depending on how you want to handle this, you could return a non-functional
+    // placeholder or re-throw the error. Re-throwing makes the problem visible.
+    throw error; 
+  }
 };
 
-export const ai = configureGenkit();
+export const ai = configureGenkitInstance();
 
-// testGeminiModel and testOpenAIModel have been moved to src/ai/testActions.ts
-// to be proper Server Actions callable from client components.
+// testGeminiModel and testOpenAIModel were moved to src/ai/testActions.ts
+// which should have 'use server'; at its top.
