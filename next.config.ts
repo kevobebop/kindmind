@@ -1,3 +1,4 @@
+
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
@@ -21,7 +22,7 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
-    domains: ['localhost', 'res.cloudinary.com'],
+    domains: ['localhost', 'res.cloudinary.com', 'picsum.photos'],
   },
 }
 

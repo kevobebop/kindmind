@@ -41,6 +41,7 @@
     "@tanstack-query-firebase/react": "^1.0.5",
     "@tanstack/react-query": "^5.66.0",
     "ai": "^4.3.13",
+    "babel-plugin-module-resolver": "^5.0.2",
     "chatgpt": "^5.2.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
