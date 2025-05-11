@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
-    domains: ['localhost', 'res.cloudinary.com', 'picsum.photos'],
+    domains: ['localhost', 'res.cloudinary.com', 'picsum.photos'], // Added 'picsum.photos'
   },
 }
 
