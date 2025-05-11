@@ -38,13 +38,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   LineChart,
   Line,
   XAxis,
@@ -70,52 +63,47 @@ if (!stripePromise && typeof window !== 'undefined') {
 }
 
 const Mascot = ({ talking, mood }: { talking: boolean; mood: string }) => {
-  const [isClient, setIsClient] = useState(false);
+  const [isClientMascot, setIsClientMascot] = useState(false);
   useEffect(() => {
-    setIsClient(true);
+    setIsClientMascot(true);
   }, []);
 
-  if (!isClient) {
-    // Fallback or placeholder for SSR to avoid hydration mismatch
-    return <div className="w-32 h-32 bg-gray-200 rounded-full animate-pulse mx-auto"></div>;
+  if (!isClientMascot) {
+    return <div className="w-32 h-32 bg-gray-200 rounded-full animate-pulse mx-auto" data-ai-hint="robot mascot"></div>;
   }
 
-  let moodClasses = "bg-blue-400"; // Default mood
+  let moodClasses = "bg-blue-400"; 
   if (mood === "happy") moodClasses = "bg-green-400";
   if (mood === "neutral") moodClasses = "bg-yellow-400";
-  if (mood === "sad") moodClasses = "bg-red-500"; // More distinct for sad/frustrated
+  if (mood === "sad") moodClasses = "bg-red-500"; 
 
   return (
     <div className={`relative w-32 h-32 rounded-full shadow-xl transition-all duration-500 ease-in-out ${moodClasses} flex items-center justify-center transform ${talking ? 'scale-110 animate-pulse' : 'scale-100'} mx-auto border-4 border-white`}>
-      {/* Eyes - bigger and more expressive for Orbii */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 flex space-x-4">
         <div className="w-10 h-10 bg-white rounded-full border-2 border-gray-700 flex items-center justify-center">
-          <div className={`w-5 h-5 bg-gray-800 rounded-full ${talking ? 'animate-ping' : ''}`}></div> {/* Pupil */}
+          <div className={`w-5 h-5 bg-gray-800 rounded-full ${talking ? 'animate-ping' : ''}`}></div>
         </div>
         <div className="w-10 h-10 bg-white rounded-full border-2 border-gray-700 flex items-center justify-center">
-          <div className={`w-5 h-5 bg-gray-800 rounded-full ${talking ? 'animate-ping delay-150' : ''}`}></div> {/* Pupil */}
+          <div className={`w-5 h-5 bg-gray-800 rounded-full ${talking ? 'animate-ping delay-150' : ''}`}></div>
         </div>
       </div>
-      {/* Big round glasses outline */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 flex space-x-3 pointer-events-none">
         <div className="w-12 h-12 border-4 border-gray-700 rounded-full opacity-90 -translate-x-1"></div>
         <div className="w-12 h-12 border-4 border-gray-700 rounded-full opacity-90 translate-x-1"></div>
       </div>
-      {/* A subtle glowing effect */}
       <div className={`absolute inset-0 rounded-full opacity-30 ${talking ? 'animate-ping' : ''} ${moodClasses} blur-md`}></div>
-      {/* Orbii's 'O' initial, less prominent */}
       <div className="text-white text-xl font-bold opacity-50 mt-12">O</div>
     </div>
   );
 };
 
 const SpeechBubble = ({ text }: { text: string }) => {
-  const [isClient, setIsClient] = useState(false);
+  const [isClientBubble, setIsClientBubble] = useState(false);
   useEffect(() => {
-    setIsClient(true);
+    setIsClientBubble(true);
   }, []);
 
-  if (!isClient || !text) return null; // Don't render on server or if no text
+  if (!isClientBubble || !text) return null;
 
   return (
     <div className="relative bg-primary text-primary-foreground p-4 rounded-lg shadow-md max-w-md mt-4 mx-auto break-words">
@@ -188,7 +176,6 @@ const CheckoutForm = ({ onSuccess }: { onSuccess: () => void }) => {
       return;
     }
     
-    // Simulate successful trial start without actual payment processing for now
     toast({
       title: "Subscription Started!",
       description: "Your free trial is active. You'll be charged $9.99/month after the trial.",
@@ -220,7 +207,7 @@ const CheckoutForm = ({ onSuccess }: { onSuccess: () => void }) => {
 };
 
 
-export default function Home() {
+const AppContent = () => {
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [orbiiResponse, setOrbiiResponse] = useState('');
   const [loading, setLoading] = useState(false);
@@ -228,8 +215,7 @@ export default function Home() {
   const { toast } = useToast();
   const [questionHistory, setQuestionHistory] = useState<{ question: string; answer: string }[]>([]);
   const [isVoiceChatEnabled, setIsVoiceChatEnabled] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [orbiiIsTalking, setOrbiiIsTalking] = useState(false);
 
   const [currentMood, setCurrentMood] = useState("neutral");
   const [adaptiveLessonPlan, setAdaptiveLessonPlan] = useState<string[] | null>(null);
@@ -240,8 +226,9 @@ export default function Home() {
   const [isGuardianView, setIsGuardianView] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [orbiiIsTalking, setOrbiiIsTalking] = useState(false);
-  const [isClient, setIsClient] = useState(false);
+  
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
 
   const [asdAnswer, setAsdAnswer] = useState<AsdTutorOutput | null>(null);
@@ -253,47 +240,6 @@ export default function Home() {
 
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    setIsClient(true); // Component has mounted
-    // Initialize SpeechRecognition
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recog = new SpeechRecognition();
-        recog.continuous = false; // Listen for a single utterance
-        recog.interimResults = false; // We only want final results
-        recog.lang = 'en-US';
-
-        recog.onresult = (event: SpeechRecognitionEvent) => {
-          const transcript = event.results[0][0].transcript;
-          setCurrentQuestion(transcript); // Update question input with transcript
-          toast({ title: 'Voice Input Received', description: transcript });
-          setIsListening(false);
-          // handleSubmit(transcript); // Optionally auto-submit after voice input
-        };
-
-        recog.onerror = (event: SpeechRecognitionEventMap['error']) => {
-          console.error('Speech recognition error', event.error, event.message);
-          let errorMessage = `Could not understand audio: ${event.error}.`;
-          if (event.error === 'no-speech') errorMessage = "Didn't hear anything. Try speaking louder?";
-          if (event.error === 'network') errorMessage = "Network error with speech service. Check connection.";
-          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') errorMessage = "Microphone access denied. Please enable it in browser settings.";
-          
-          toast({ variant: 'destructive', title: 'Voice Error', description: errorMessage });
-          setIsListening(false);
-        };
-        
-        recog.onend = () => {
-            setIsListening(false); // Ensure listening state is reset
-        };
-        recognitionRef.current = recog;
-      } else {
-        console.warn("Speech Recognition API not supported in this browser.");
-      }
-    }
-  }, [toast]);
-
 
   const speakText = useCallback((text: string) => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -308,14 +254,16 @@ export default function Home() {
     } else {
       toast({ title: "Speech Error", description: "Text-to-speech is not supported in this browser.", variant: "destructive" });
     }
-  }, [toast]);
+  }, [toast, setOrbiiIsTalking]);
+
+  const memoizedGetOrbiiGreeting = useCallback(getOrbiiGreeting, []);
+
 
   useEffect(() => {
-    if (isClient && !isSubscribed && !showSubscriptionModal) {
-       // Only interact with localStorage on client
-      const returningUser = localStorage.getItem('kindMindUserHasVisited');
+    if (!isSubscribed && !showSubscriptionModal) {
+       const returningUser = localStorage.getItem('kindMindUserHasVisited');
       if (!returningUser) {
-         getOrbiiGreeting({ isNewUser: true }).then(res => {
+         memoizedGetOrbiiGreeting({ isNewUser: true }).then(res => {
             setOrbiiResponse(res.response);
             if (isVoiceChatEnabled) speakText(res.response);
             localStorage.setItem('kindMindUserHasVisited', 'true');
@@ -324,9 +272,8 @@ export default function Home() {
             toast({variant: 'destructive', title: 'Connection Error', description: 'Could not connect to Orbii.'});
         });
       } else {
-        // Example: Fetch last session topic from localStorage or Firestore
         const lastTopic = localStorage.getItem('kindMindLastTopic') || "your previous learnings";
-         getOrbiiGreeting({ isNewUser: false, lastSessionContext: lastTopic }).then(res => {
+         memoizedGetOrbiiGreeting({ isNewUser: false, lastSessionContext: lastTopic }).then(res => {
             setOrbiiResponse(res.response);
             if (isVoiceChatEnabled) speakText(res.response);
         }).catch(error => {
@@ -335,7 +282,45 @@ export default function Home() {
         });
       }
     }
-  }, [isClient, isSubscribed, showSubscriptionModal, isVoiceChatEnabled, speakText, toast]);
+  }, [isSubscribed, showSubscriptionModal, isVoiceChatEnabled, speakText, toast, memoizedGetOrbiiGreeting]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recog = new SpeechRecognition();
+        recog.continuous = false;
+        recog.interimResults = false;
+        recog.lang = 'en-US';
+
+        recog.onresult = (event: SpeechRecognitionEvent) => {
+          const transcript = event.results[0][0].transcript;
+          setCurrentQuestion(transcript);
+          toast({ title: 'Voice Input Received', description: transcript });
+          setIsListening(false);
+        };
+
+        recog.onerror = (event: SpeechRecognitionEventMap['error']) => {
+          console.error('Speech recognition error', event.error, event.message);
+          let errorMessage = `Could not understand audio: ${event.error}.`;
+          if (event.error === 'no-speech') errorMessage = "Didn't hear anything. Try speaking louder?";
+          if (event.error === 'network') errorMessage = "Network error with speech service. Check connection.";
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') errorMessage = "Microphone access denied. Please enable it in browser settings.";
+          
+          toast({ variant: 'destructive', title: 'Voice Error', description: errorMessage });
+          setIsListening(false);
+        };
+        
+        recog.onend = () => {
+            setIsListening(false); 
+        };
+        recognitionRef.current = recog;
+      } else {
+        console.warn("Speech Recognition API not supported in this browser.");
+      }
+    }
+  }, [toast]);
+
 
   const handleStudentProfileChange = (field: keyof typeof studentProfile, value: string) => {
     setStudentProfile(prev => ({ ...prev, [field]: value }));
@@ -362,14 +347,14 @@ export default function Home() {
     try {
       const input: OrbiiInput = {
         type: imageUrl ? 'image' : 'text',
-        data: imageUrl || finalQuestion, // If image, data is image data URI, else it's the question text
+        data: imageUrl || finalQuestion, 
         intent: 'homework_help', 
         gradeLevel: studentProfile.grade,
         learningStrengths: studentProfile.strengths,
         learningStruggles: studentProfile.struggles,
         userMood: currentMood,
         topic: "General", 
-        textContextForImage: imageUrl ? finalQuestion : undefined, // if image, question is context
+        textContextForImage: imageUrl ? finalQuestion : undefined, 
       };
 
       const result = await orbiiFlow(input);
@@ -377,17 +362,16 @@ export default function Home() {
       if (isVoiceChatEnabled) speakText(result.response);
       localStorage.setItem('kindMindLastTopic', input.topic || finalQuestion.substring(0,30) + "...");
 
-
       setQuestionHistory((prev) => [...prev, { question: finalQuestion, answer: result.response }]);
+      
+      const lessonPlanInput = {
+        topic: input.topic || finalQuestion.substring(0, 30) + "...",
+        studentLevel: studentProfile.grade || "intermediate", // Default if not set
+        learningStyle: studentProfile.strengths || "visual", // Default
+      };
+      const lp = await generateLessonPlan(lessonPlanInput);
+      setAdaptiveLessonPlan(lp.lessonPlan.split('\n').filter(s => s.trim() !== '')); // Basic split, refine as needed
 
-      // Generate adaptive lesson plan - Mock
-      setAdaptiveLessonPlan([
-        `1. Understand: ${result.response.substring(0,50)}...`,
-        "2. Activity: Watch a short video about it. (Imagine a YouTube link here!)",
-        "3. Practice: Let's try a related question!",
-        "4. Visual: I can draw a mind map for this on the whiteboard!",
-        "5. Review: What was the main idea we talked about?"
-      ]);
       setShowLessonPlan(true);
 
       const asdRes = await asdTutor({
@@ -399,16 +383,12 @@ export default function Home() {
         additionalNotes: `Current mood: ${currentMood}. Student is interacting via ${isVoiceChatEnabled ? 'voice' : 'text'}.`,
       });
       setAsdAnswer(asdRes);
-      // Optionally speak ASD answer if different or as an add-on
-      // if (isVoiceChatEnabled && asdRes.answer && asdRes.answer !== result.response) speakText("And here's another way to think about it: " + asdRes.answer);
 
-
-      // Update progress (dummy update)
       setProgressData(prev => {
         const newWeekNum = prev.length > 0 ? prev.length + 1 : 1;
         const lastEntry = prev[prev.length -1] || {questions:0, mastery:0};
-        const newQuestions = lastEntry.questions + Math.floor(Math.random()*2)+1; // Increase by 1 or 2
-        const newMastery = Math.min(100, lastEntry.mastery + Math.floor(Math.random()*10)+5); // Increase by 5-14%
+        const newQuestions = lastEntry.questions + Math.floor(Math.random()*2)+1; 
+        const newMastery = Math.min(100, lastEntry.mastery + Math.floor(Math.random()*10)+5); 
         return [...prev.slice(-3), { name: `Wk ${newWeekNum}`, questions: newQuestions, mastery: newMastery }];
       });
       const currentMasteryVal = progressData[progressData.length -1]?.mastery || 0;
@@ -446,7 +426,7 @@ export default function Home() {
       const turningOn = !prev;
       if (turningOn) {
         toast({title: "Voice Chat On", description: "Orbii will now speak responses."});
-        if(orbiiResponse) speakText(orbiiResponse); // Speak current response if any
+        if(orbiiResponse) speakText(orbiiResponse); 
       } else {
          if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
         toast({title: "Voice Chat Off", description: "Orbii will be quiet now."});
@@ -483,7 +463,7 @@ export default function Home() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) { 
           toast({variant: "destructive", title: "File too large", description: "Please upload images under 5MB."});
           return;
       }
@@ -511,7 +491,6 @@ export default function Home() {
         } catch (error) {
           console.error('Error accessing camera:', error);
           setHasCameraPermission(false);
-          // Toast is shown when user tries to use camera if permission is false
         }
       } else {
         console.warn('Camera API not available.');
@@ -576,17 +555,8 @@ export default function Home() {
     setLoading(false);
   };
 
-  if (!isClient) {
-    return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-secondary/50">
-            <Mascot talking={false} mood="neutral" />
-            <p className="text-xl text-foreground mt-4">Loading Orbii...</p>
-        </div>
-    );
-  }
 
   return (
-    <Elements stripe={stripePromise}>
     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-gradient-to-br from-background to-secondary/50 px-2 md:px-4">
       <header className="w-full max-w-3xl text-center mb-6">
         <div className="flex justify-center items-center mb-2">
@@ -712,7 +682,7 @@ export default function Home() {
                                 <DialogHeader><DialogTitle className="text-xl">Live Camera Capture</DialogTitle></DialogHeader>
                                 {hasCameraPermission === null && <p className="text-center p-4">Requesting camera permission...</p>}
                                 {hasCameraPermission === false && <Alert variant="destructive" className="my-4"><AlertTitle>Camera Access Denied</AlertTitle><AlertDescription>Please grant camera access in your browser settings. For camera usage, this site may need to be served over HTTPS or localhost.</AlertDescription></Alert>}
-                                {hasCameraPermission && <video ref={videoRef} className="w-full rounded-md aspect-video bg-black" autoPlay playsInline muted />}
+                                <video ref={videoRef} className="w-full rounded-md aspect-video bg-black" autoPlay playsInline muted />
                                 <DialogFooter>
                                     <Button onClick={captureImageFromCamera} disabled={!hasCameraPermission || loading} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
                                       <Camera className="mr-2"/> Capture Photo
@@ -786,9 +756,9 @@ export default function Home() {
               <CardContent>
                 <p className="text-md">Total Questions Asked: <span className="font-bold text-primary">{questionHistory.length}</span></p>
                 <p className="text-md">Estimated Mastery: <span className="font-bold text-accent">{estimatedMastery}</span></p>
-                <div className="h-72 mt-4"> {/* Increased height for better visibility */}
+                <div className="h-72 mt-4">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={progressData} margin={{ top: 5, right: 20, left: -25, bottom: 5 }}> {/* Adjusted left margin */}
+                    <LineChart data={progressData} margin={{ top: 5, right: 20, left: -25, bottom: 5 }}> 
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="name" stroke="hsl(var(--foreground))" tick={{fontSize: 12}} />
                       <YAxis stroke="hsl(var(--foreground))" tick={{fontSize: 12}} />
@@ -857,8 +827,6 @@ export default function Home() {
                 </CardContent>
               </Card>
             )}
-
-
           </>
         )}
       </main>
@@ -873,6 +841,54 @@ export default function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+
+export default function Home() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-secondary/50">
+            <Mascot talking={false} mood="neutral" />
+            <p className="text-xl text-foreground mt-4">Loading Orbii...</p>
+        </div>
+    );
+  }
+
+  if (!stripePromise) {
+    return (
+      <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-gradient-to-br from-background to-secondary/50 px-2 md:px-4">
+        <header className="w-full max-w-3xl text-center mb-6">
+           <Image src="https://picsum.photos/64/64" alt="Kind Mind Learning Logo" width={64} height={64} className="mr-3 rounded-full" data-ai-hint="brain logo" />
+           <h1 className="text-4xl font-bold text-primary">Kind Mind Learning</h1>
+           <p className="text-muted-foreground text-lg">Orbii: Your friendly AI learning companion!</p>
+        </header>
+        <main className="w-full max-w-3xl flex-1 flex flex-col items-center space-y-6">
+          <Alert variant="destructive">
+            <AlertTitle>Stripe Not Configured</AlertTitle>
+            <AlertDescription>
+              Payment features are disabled because Stripe is not properly configured. 
+              Please ensure the <code className="font-mono bg-muted px-1 rounded">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> environment variable is set.
+            </AlertDescription>
+          </Alert>
+          {/* You might want to render some basic non-Stripe functionality here or just stop */}
+        </main>
+        <footer className="w-full max-w-3xl mt-10 pt-6 border-t border-border text-center text-muted-foreground text-sm">
+          <p>&copy; {new Date().getFullYear()} Kind Mind Learning. All rights reserved.</p>
+        </footer>
+      </div>
+    );
+  }
+
+  return (
+    <Elements stripe={stripePromise}>
+      <AppContent />
     </Elements>
   );
 }
