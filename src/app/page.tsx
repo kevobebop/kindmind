@@ -1,20 +1,30 @@
+// ✅ Orbii's upgraded page.tsx with Genkit brain integration
+
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { orbiiFlow, getOrbiiGreeting, OrbiiInput, OrbiiOutput } from '@/ai/flows/orbiiFlow';
+import {
+  getOrbiiGreeting,
+  orbiiFlow,
+  OrbiiInput,
+  OrbiiOutput,
+} from '@/ai/flows/orbiiFlow';
 import { generateLessonPlan } from '@/ai/flows/generate-lesson-plan';
 import { generateProgressReport } from '@/ai/flows/generate-progress-report';
-import { asdTutor, AsdTutorInput } from '@/ai/flows/asd-tutor-flow';
-import { testGeminiModel, testOpenAIModel } from '@/ai/testActions'; // Corrected import path
-import { Input } from '@/components/ui/input';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { Mic, Camera, Bot, FileText, BarChart3, Smile, Meh, Frown, Send, Sparkles, Wind, BookOpen, UserCog, Settings, Zap, CheckCircle, XCircle, Headphones, Award, Palette, Brain, MessageCircle, Users, LogOut, Moon, Sun, Star } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Toaster } from '@/components/ui/toaster';
-import Image from 'next/image';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Camera, Speech, Upload, Bot, Brain, Palette, BarChart3, UserCog, DollarSign, Settings, PlayCircle, FileText, Smile, Meh, Frown, Sun, Zap, CheckCircle, XCircle, Mic } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogClose,
@@ -26,112 +36,121 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
+import { Icons } from '@/components/icons';
+import Image from 'next/image';
+import { asdTutor, AsdTutorOutput } from '@/ai/flows/asd-tutor-flow';
+import { Tldraw } from 'tldraw';
 
-// Stripe setup
-const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-let stripePromise: ReturnType<typeof loadStripe> | null = null;
-if (stripePublishableKey) {
-  stripePromise = loadStripe(stripePublishableKey);
-} else {
-  if (typeof window !== 'undefined') { // check typeof window to prevent SSR error
-    console.error("Stripe public key is not defined. Stripe functionality will be disabled.");
-  }
+import { testGeminiModel, testOpenAIModel } from '@/ai/testActions';
+
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
+
+if (!stripePromise && typeof window !== 'undefined') { 
+  console.error("Stripe public key is not defined in .env.local NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY. Stripe functionality will be disabled.");
 }
 
 const Mascot = ({ talking, mood }: { talking: boolean; mood: string }) => {
-  // Determine Orbii's appearance based on mood
-  let moodClasses = 'bg-sky-400'; // Neutral
-  let eyeShape = 'rounded-full';
-  let mouthShape = 'w-10 h-3 bg-sky-800 rounded-sm'; // Neutral mouth
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-  if (mood === 'happy') {
-    moodClasses = 'bg-green-400';
-    mouthShape = 'w-10 h-5 bg-green-800 rounded-b-full'; // Happy smile
-  } else if (mood === 'frustrated' || mood === 'sad') {
-    moodClasses = 'bg-red-400';
-    mouthShape = 'w-10 h-3 bg-red-800 rounded-t-full transform rotate-0'; // Sad mouth (simplified)
-  } else if (mood === 'confused') {
-    moodClasses = 'bg-yellow-400';
-    eyeShape = 'w-5 h-3 bg-yellow-800 rounded-sm'; // Squinted/confused eyes
+  if (!isClient) {
+    // Fallback or placeholder for SSR to avoid hydration mismatch
+    return <div className="w-32 h-32 bg-gray-200 rounded-full animate-pulse mx-auto"></div>;
   }
 
+  let moodClasses = "bg-blue-400"; // Default mood
+  if (mood === "happy") moodClasses = "bg-green-400";
+  if (mood === "neutral") moodClasses = "bg-yellow-400";
+  if (mood === "sad") moodClasses = "bg-red-500"; // More distinct for sad/frustrated
 
   return (
-    <div className="flex flex-col items-center mb-4 relative">
-      {/* Floating effect for Orbii */}
-      <div className={`relative w-32 h-32 rounded-full shadow-2xl transition-all duration-500 ease-in-out transform hover:scale-105 ${talking ? 'animate-bounce' : 'animate-pulse' } ${moodClasses} flex flex-col items-center justify-center border-4 border-white overflow-hidden`} data-ai-hint="robot mascot">
-        {/* Eyes */}
-        <div className="flex space-x-4 mt-2">
-          <div className={`w-6 h-6 bg-white ${eyeShape} flex items-center justify-center shadow-inner`}>
-            <div className={`w-3 h-3 bg-sky-800 rounded-full ${talking ? 'animate-ping' : ''}`}></div>
-          </div>
-          <div className={`w-6 h-6 bg-white ${eyeShape} flex items-center justify-center shadow-inner`}>
-            <div className={`w-3 h-3 bg-sky-800 rounded-full ${talking ? 'animate-ping' : ''}`}></div>
-          </div>
+    <div className={`relative w-32 h-32 rounded-full shadow-xl transition-all duration-500 ease-in-out ${moodClasses} flex items-center justify-center transform ${talking ? 'scale-110 animate-pulse' : 'scale-100'} mx-auto border-4 border-white`}>
+      {/* Eyes - bigger and more expressive for Orbii */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 flex space-x-4">
+        <div className="w-10 h-10 bg-white rounded-full border-2 border-gray-700 flex items-center justify-center">
+          <div className={`w-5 h-5 bg-gray-800 rounded-full ${talking ? 'animate-ping' : ''}`}></div> {/* Pupil */}
         </div>
-        {/* Mouth */}
-        <div className={`mt-3 ${mouthShape} transition-all duration-300`}></div>
-        {/* Glasses - simple line, could be more complex SVG */}
-        <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <svg width="100" height="30" viewBox="0 0 100 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="15" r="12" stroke="#334155" strokeWidth="2.5"/>
-            <circle cx="80" cy="15" r="12" stroke="#334155" strokeWidth="2.5"/>
-            <line x1="32" y1="15" x2="68" y2="15" stroke="#334155" strokeWidth="2.5"/>
-          </svg>
+        <div className="w-10 h-10 bg-white rounded-full border-2 border-gray-700 flex items-center justify-center">
+          <div className={`w-5 h-5 bg-gray-800 rounded-full ${talking ? 'animate-ping delay-150' : ''}`}></div> {/* Pupil */}
         </div>
-        {/* Optional: Sparkles or glow effect */}
-        {!talking && <Sparkles className="absolute bottom-2 right-2 w-5 h-5 text-white/70 animate-ping opacity-50" />}
       </div>
-      <p className="text-sm text-muted-foreground mt-2 capitalize">Orbii is {talking ? "listening..." : mood}</p>
+      {/* Big round glasses outline */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 flex space-x-3 pointer-events-none">
+        <div className="w-12 h-12 border-4 border-gray-700 rounded-full opacity-90 -translate-x-1"></div>
+        <div className="w-12 h-12 border-4 border-gray-700 rounded-full opacity-90 translate-x-1"></div>
+      </div>
+      {/* A subtle glowing effect */}
+      <div className={`absolute inset-0 rounded-full opacity-30 ${talking ? 'animate-ping' : ''} ${moodClasses} blur-md`}></div>
+      {/* Orbii's 'O' initial, less prominent */}
+      <div className="text-white text-xl font-bold opacity-50 mt-12">O</div>
     </div>
   );
 };
 
+const SpeechBubble = ({ text }: { text: string }) => {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-const SpeechBubble = ({ text, isUser, audioSrc, onPlayAudio }: { text: string; isUser?: boolean, audioSrc?: string, onPlayAudio?: () => void }) => {
-  if (!text && !audioSrc) return null;
-  const bubbleClasses = isUser
-    ? "bg-accent text-accent-foreground self-end rounded-lg rounded-br-none"
-    : "bg-card text-card-foreground self-start rounded-lg rounded-bl-none";
-  
+  if (!isClient || !text) return null; // Don't render on server or if no text
+
   return (
-    <div className={`relative ${bubbleClasses} p-3 shadow-md max-w-md mt-3 break-words w-auto inline-block clear-both mb-2 text-left text-sm`}>
-      {text && <p className="whitespace-pre-wrap">{text}</p>}
-      {audioSrc && onPlayAudio && (
-        <Button onClick={onPlayAudio} variant="ghost" size="sm" className="mt-2">
-          <Headphones className="mr-2 h-4 w-4" /> Play Audio
-        </Button>
-      )}
+    <div className="relative bg-primary text-primary-foreground p-4 rounded-lg shadow-md max-w-md mt-4 mx-auto break-words">
+      <p className="whitespace-pre-wrap">{text}</p>
+      <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-primary"></div>
     </div>
   );
 };
 
-const MoodSelector = ({ onSelectMood }: { onSelectMood: (mood: OrbiiInput['userMood']) => void }) => {
-  const moods: { mood: OrbiiInput['userMood'], icon: React.ReactNode, label: string }[] = [
-    { mood: 'happy', icon: <Smile className="h-8 w-8 text-green-500" />, label: "Happy" },
-    { mood: 'neutral', icon: <Meh className="h-8 w-8 text-yellow-500" />, label: "Okay" },
-    { mood: 'confused', icon: <HelpCircle className="h-8 w-8 text-orange-500" />, label: "Confused"},
-    { mood: 'frustrated', icon: <Frown className="h-8 w-8 text-red-500" />, label: "Frustrated"},
-    { mood: 'sad', icon: <Frown className="h-8 w-8 text-blue-500" />, label: "Sad"}, // Using Frown for sad too, differentiated by color
+
+const MoodSelector = ({ onSelectMood }: { onSelectMood: (mood: string) => void }) => {
+  const moods = [
+    { value: "happy", label: "Happy", icon: <Smile className="mr-2 h-6 w-6" /> },
+    { value: "neutral", label: "Okay", icon: <Meh className="mr-2 h-6 w-6" /> },
+    { value: "sad", label: "Stuck", icon: <Frown className="mr-2 h-6 w-6" /> },
   ];
 
   return (
-    <Card className="mb-4">
+    <Card className="w-full mb-4 shadow-lg border border-border">
       <CardHeader>
-        <CardTitle className="text-lg">How are you feeling today?</CardTitle>
+        <CardTitle className="flex items-center text-xl font-semibold"><Palette className="mr-2 h-5 w-5 text-primary" /> How are you feeling?</CardTitle>
+        <CardDescription>Orbii will adjust to help you learn better!</CardDescription>
       </CardHeader>
-      <CardContent className="flex justify-around items-center p-4">
-        {moods.map(({ mood, icon, label }) => (
-          <Button key={mood} variant="ghost" onClick={() => onSelectMood(mood)} className="flex flex-col h-auto p-2 hover:bg-secondary/50" aria-label={`Select mood: ${label}`}>
-            {icon}
-            <span className="text-xs mt-1">{label}</span>
+      <CardContent className="flex flex-col sm:flex-row justify-around gap-2">
+        {moods.map((mood) => (
+          <Button
+            key={mood.value}
+            variant="outline"
+            className="flex-1 text-md px-4 py-3 rounded-lg shadow-sm hover:shadow-md transition-shadow hover:bg-accent hover:text-accent-foreground focus:ring-2 focus:ring-primary"
+            onClick={() => onSelectMood(mood.value)}
+            aria-label={`Select mood ${mood.label}`}
+          >
+            {mood.icon} {mood.label}
           </Button>
         ))}
       </CardContent>
@@ -139,194 +158,349 @@ const MoodSelector = ({ onSelectMood }: { onSelectMood: (mood: OrbiiInput['userM
   );
 };
 
-
-// Dummy data for progress chart
 const initialProgressData = [
-  { name: 'Week 1', questions: 5, mastery: 20 },
-  { name: 'Week 2', questions: 8, mastery: 35 },
-  { name: 'Week 3', questions: 12, mastery: 50 },
-  { name: 'Week 4', questions: 10, mastery: 60 },
+  { name: 'Week 1', questions: 0, mastery: 0 },
+  { name: 'Week 2', questions: 0, mastery: 0 },
+  { name: 'Week 3', questions: 0, mastery: 0 },
+  { name: 'Week 4', questions: 0, mastery: 0 },
 ];
+
 
 const CheckoutForm = ({ onSuccess }: { onSuccess: () => void }) => {
   const stripe = useStripe();
   const elements = useElements();
-  const { toast } = useToast();
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
 
     if (!stripe || !elements) {
-      toast({ variant: "destructive", title: "Stripe not loaded!" });
+      setError("Stripe has not loaded yet. Please try again in a moment.");
       setLoading(false);
       return;
     }
 
     const cardElement = elements.getElement(CardElement);
     if (!cardElement) {
-      toast({ variant: "destructive", title: "Card details not found!" });
+      setError("Card details not found. Please ensure the card form is visible.");
       setLoading(false);
       return;
     }
-
-    // Here, you would typically create a PaymentMethod and then
-    // call a backend (Firebase Function) to create a subscription.
-    // For this test, we'll simulate a successful payment.
-    // const { error, paymentMethod } = await stripe.createPaymentMethod({
-    //   type: 'card',
-    //   card: cardElement,
-    // });
-
-    // if (error || !paymentMethod) {
-    //   toast({ variant: "destructive", title: error?.message || "Payment failed." });
-    //   setLoading(false);
-    //   return;
-    // }
-
-    // console.log('Simulating payment method:', paymentMethod.id);
-    // Assume backend call to create subscription is successful
     
-    setTimeout(() => { // Simulate network delay
-      toast({ title: "Subscription Started!", description: "Welcome to Kind Mind Learning Premium!", icon: <CheckCircle className="text-green-500" /> });
-      onSuccess(); // Call the onSuccess callback passed from parent
-      setLoading(false);
-    }, 1500);
+    // Simulate successful trial start without actual payment processing for now
+    toast({
+      title: "Subscription Started!",
+      description: "Your free trial is active. You'll be charged $9.99/month after the trial.",
+      variant: "default",
+      duration: 5000,
+    });
+    onSuccess(); 
+    setError(null);
+    setLoading(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <CardElement options={{ style: { base: { fontSize: '16px' } } }} className="p-3 border rounded-md" />
-      <Button type="submit" disabled={!stripe || loading} className="w-full bg-primary hover:bg-primary/90">
-        {loading ? "Processing..." : "Start Free Trial & Subscribe ($9.99/mo after trial)"}
+    <form onSubmit={handleSubmit} className="space-y-6 p-4">
+      <div className="p-3 border rounded-md bg-secondary/30">
+        <Label htmlFor="card-element" className="block text-sm font-medium text-foreground mb-1">Card Details (Test Mode)</Label>
+        <CardElement id="card-element" className="p-3 border rounded-md bg-background" />
+      </div>
+      {error && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+      <Button 
+        type="submit" 
+        disabled={!stripe || loading} 
+        className="w-full bg-primary text-primary-foreground py-3 text-lg font-semibold rounded-md shadow-md hover:bg-primary/90 transition-colors"
+        size="lg"
+      >
+        {loading ? <><Icons.spinner className="animate-spin mr-2" /> Processing...</> : <><Zap className="mr-2"/> Start Free Trial ($9.99/month after)</>}
       </Button>
     </form>
   );
 };
 
-interface AppContentProps {
-  initialIsSubscribed: boolean;
-}
 
-
-const AppContent: React.FC<AppContentProps> = ({ initialIsSubscribed }) => {
-  const [userInput, setUserInput] = useState('');
-  const [chatHistory, setChatHistory] = useState<{ type: 'user' | 'orbii'; text: string; audioSrc?: string }[]>([]);
+export default function Home() {
+  const [currentQuestion, setCurrentQuestion] = useState('');
+  const [orbiiResponse, setOrbiiResponse] = useState('');
   const [loading, setLoading] = useState(false);
-  const [currentMood, setCurrentMood] = useState<OrbiiInput['userMood']>('neutral');
-  const { toast } = useToast();
   const [imageUrl, setImageUrl] = useState('');
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const chatEndRef = useRef<null | HTMLDivElement>(null);
-  const [currentTopic, setCurrentTopic] = useState('');
-  const [gradeLevel, setGradeLevel] = useState('');
-  const [learningStrengths, setLearningStrengths] = useState('');
-  const [learningStruggles, setLearningStruggles] = useState('');
-  const [activeAudio, setActiveAudio] = useState<HTMLAudioElement | null>(null);
-
+  const { toast } = useToast();
+  const [questionHistory, setQuestionHistory] = useState<{ question: string; answer: string }[]>([]);
+  const [isVoiceChatEnabled, setIsVoiceChatEnabled] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
-
-  // Progress and Lesson Plan States
-  const [lessonPlan, setLessonPlan] = useState<string | null>(null);
+  const [currentMood, setCurrentMood] = useState("neutral");
+  const [adaptiveLessonPlan, setAdaptiveLessonPlan] = useState<string[] | null>(null);
+  const [showLessonPlan, setShowLessonPlan] = useState(false);
+  const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
   const [progressData, setProgressData] = useState(initialProgressData);
-  const [masteryLevel, setMasteryLevel] = useState<'Beginner' | 'Proficient' | 'Master'>('Beginner');
-  const [showGuardianView, setShowGuardianView] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(initialIsSubscribed);
+  const [estimatedMastery, setEstimatedMastery] = useState("Beginner");
+  const [isGuardianView, setIsGuardianView] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [orbiiIsTalking, setOrbiiIsTalking] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
-  // Speech Recognition Setup
+
+  const [asdAnswer, setAsdAnswer] = useState<AsdTutorOutput | null>(null);
+  const [studentProfile, setStudentProfile] = useState({
+    grade: '',
+    strengths: '',
+    struggles: '',
+  });
+
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   useEffect(() => {
+    setIsClient(true); // Component has mounted
+    // Initialize SpeechRecognition
     if (typeof window !== 'undefined') {
-      const SpeechRecognition =
-        window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-
+      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recog = new SpeechRecognition();
-        recog.continuous = false; // Process after user stops speaking
-        recog.interimResults = false; // Only final results
+        recog.continuous = false; // Listen for a single utterance
+        recog.interimResults = false; // We only want final results
         recog.lang = 'en-US';
 
         recog.onresult = (event: SpeechRecognitionEvent) => {
           const transcript = event.results[0][0].transcript;
-          setUserInput(transcript); // Set the input field with the transcript
-          toast({ title: 'Voice Input Received', description: `"${transcript}" - Ready to send to Orbii!` });
+          setCurrentQuestion(transcript); // Update question input with transcript
+          toast({ title: 'Voice Input Received', description: transcript });
           setIsListening(false);
-          // Automatically submit after successful recognition if desired
-          // handleUserSubmit(transcript); 
+          // handleSubmit(transcript); // Optionally auto-submit after voice input
         };
 
-        recog.onerror = (event: SpeechRecognitionErrorEvent) => {
-          console.error('Speech recognition error', event.error);
-          let errorMsg = event.error;
-          if (event.error === 'no-speech') errorMsg = "I didn't hear anything. Could you try again?";
-          if (event.error === 'audio-capture') errorMsg = "Hmm, I can't seem to access your microphone.";
-          if (event.error === 'not-allowed') errorMsg = "Microphone access was denied. Please enable it in your browser settings.";
+        recog.onerror = (event: SpeechRecognitionEventMap['error']) => {
+          console.error('Speech recognition error', event.error, event.message);
+          let errorMessage = `Could not understand audio: ${event.error}.`;
+          if (event.error === 'no-speech') errorMessage = "Didn't hear anything. Try speaking louder?";
+          if (event.error === 'network') errorMessage = "Network error with speech service. Check connection.";
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') errorMessage = "Microphone access denied. Please enable it in browser settings.";
           
-          toast({ variant: "destructive", title: 'Voice Error', description: errorMsg });
+          toast({ variant: 'destructive', title: 'Voice Error', description: errorMessage });
           setIsListening(false);
         };
         
-        recog.onstart = () => {
-          setIsListening(true);
-          toast({description: "Orbii is listening..."});
-        }
         recog.onend = () => {
-          setIsListening(false);
-        }
-
+            setIsListening(false); // Ensure listening state is reset
+        };
         recognitionRef.current = recog;
       } else {
-        toast({variant: "destructive", title: "Voice Input Not Supported", description: "Your browser doesn't support voice recognition."});
+        console.warn("Speech Recognition API not supported in this browser.");
       }
     }
   }, [toast]);
-  
-  const handleToggleListening = () => {
-    if (!recognitionRef.current) {
-      toast({variant: "destructive", title: "Voice Input Not Ready", description: "Speech recognition is not available."});
-      return;
-    }
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
+
+
+  const speakText = useCallback((text: string) => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      setOrbiiIsTalking(true);
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.9; 
+      utterance.pitch = 1.1; 
+      utterance.onend = () => setOrbiiIsTalking(false);
+      window.speechSynthesis.cancel(); 
+      window.speechSynthesis.speak(utterance);
     } else {
-      try {
-        recognitionRef.current.start();
-      } catch (e) {
-        console.error("Error starting recognition:", e);
-        toast({variant: "destructive", title: "Could not start voice input", description: "Please ensure microphone permissions are granted."});
-        setIsListening(false);
+      toast({ title: "Speech Error", description: "Text-to-speech is not supported in this browser.", variant: "destructive" });
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (isClient && !isSubscribed && !showSubscriptionModal) {
+       // Only interact with localStorage on client
+      const returningUser = localStorage.getItem('kindMindUserHasVisited');
+      if (!returningUser) {
+         getOrbiiGreeting({ isNewUser: true }).then(res => {
+            setOrbiiResponse(res.response);
+            if (isVoiceChatEnabled) speakText(res.response);
+            localStorage.setItem('kindMindUserHasVisited', 'true');
+        }).catch(error => {
+            console.error("Error getting initial greeting:", error);
+            toast({variant: 'destructive', title: 'Connection Error', description: 'Could not connect to Orbii.'});
+        });
+      } else {
+        // Example: Fetch last session topic from localStorage or Firestore
+        const lastTopic = localStorage.getItem('kindMindLastTopic') || "your previous learnings";
+         getOrbiiGreeting({ isNewUser: false, lastSessionContext: lastTopic }).then(res => {
+            setOrbiiResponse(res.response);
+            if (isVoiceChatEnabled) speakText(res.response);
+        }).catch(error => {
+            console.error("Error getting returning greeting:", error);
+            toast({variant: 'destructive', title: 'Connection Error', description: 'Could not connect to Orbii.'});
+        });
       }
     }
+  }, [isClient, isSubscribed, showSubscriptionModal, isVoiceChatEnabled, speakText, toast]);
+
+  const handleStudentProfileChange = (field: keyof typeof studentProfile, value: string) => {
+    setStudentProfile(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleSubmit = useCallback(async (questionToSubmit?: string) => {
+    const finalQuestion = questionToSubmit || currentQuestion;
+    if (!finalQuestion.trim()) {
+      toast({ title: "Empty Question", description: "Please type or speak a question.", variant: "destructive" });
+      return;
+    }
+    if (!isSubscribed) {
+      setShowSubscriptionModal(true);
+      toast({ variant: 'destructive', title: 'Subscription Required', description: 'Please subscribe to ask questions.' });
+      return;
+    }
 
-  useEffect(() => {
-    // Initial greeting from Orbii
-     const fetchGreeting = async () => {
-      setLoading(true);
-      try {
-        const greetingResponse = await getOrbiiGreeting({ isNewUser: true }); // Assuming new user for simplicity
-        setChatHistory([{ type: 'orbii', text: greetingResponse.response }]);
-      } catch (error: any) {
-        console.error("Failed to get Orbii's greeting:", error);
-        setChatHistory([{ type: 'orbii', text: "Hello! I'm Orbii. I seem to be having a little trouble starting up, but let's try our best!" }]);
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    setOrbiiResponse('Orbii is thinking...');
+    if (isVoiceChatEnabled) speakText('Let me think about that...');
+    setAdaptiveLessonPlan(null);
+    setAsdAnswer(null);
+
+    try {
+      const input: OrbiiInput = {
+        type: imageUrl ? 'image' : 'text',
+        data: imageUrl || finalQuestion, // If image, data is image data URI, else it's the question text
+        intent: 'homework_help', 
+        gradeLevel: studentProfile.grade,
+        learningStrengths: studentProfile.strengths,
+        learningStruggles: studentProfile.struggles,
+        userMood: currentMood,
+        topic: "General", 
+        textContextForImage: imageUrl ? finalQuestion : undefined, // if image, question is context
+      };
+
+      const result = await orbiiFlow(input);
+      setOrbiiResponse(result.response);
+      if (isVoiceChatEnabled) speakText(result.response);
+      localStorage.setItem('kindMindLastTopic', input.topic || finalQuestion.substring(0,30) + "...");
+
+
+      setQuestionHistory((prev) => [...prev, { question: finalQuestion, answer: result.response }]);
+
+      // Generate adaptive lesson plan - Mock
+      setAdaptiveLessonPlan([
+        `1. Understand: ${result.response.substring(0,50)}...`,
+        "2. Activity: Watch a short video about it. (Imagine a YouTube link here!)",
+        "3. Practice: Let's try a related question!",
+        "4. Visual: I can draw a mind map for this on the whiteboard!",
+        "5. Review: What was the main idea we talked about?"
+      ]);
+      setShowLessonPlan(true);
+
+      const asdRes = await asdTutor({
+        question: finalQuestion,
+        topic: input.topic || "General",
+        currentGrades: studentProfile.grade,
+        strengths: studentProfile.strengths,
+        struggles: studentProfile.struggles,
+        additionalNotes: `Current mood: ${currentMood}. Student is interacting via ${isVoiceChatEnabled ? 'voice' : 'text'}.`,
+      });
+      setAsdAnswer(asdRes);
+      // Optionally speak ASD answer if different or as an add-on
+      // if (isVoiceChatEnabled && asdRes.answer && asdRes.answer !== result.response) speakText("And here's another way to think about it: " + asdRes.answer);
+
+
+      // Update progress (dummy update)
+      setProgressData(prev => {
+        const newWeekNum = prev.length > 0 ? prev.length + 1 : 1;
+        const lastEntry = prev[prev.length -1] || {questions:0, mastery:0};
+        const newQuestions = lastEntry.questions + Math.floor(Math.random()*2)+1; // Increase by 1 or 2
+        const newMastery = Math.min(100, lastEntry.mastery + Math.floor(Math.random()*10)+5); // Increase by 5-14%
+        return [...prev.slice(-3), { name: `Wk ${newWeekNum}`, questions: newQuestions, mastery: newMastery }];
+      });
+      const currentMasteryVal = progressData[progressData.length -1]?.mastery || 0;
+      if (currentMasteryVal > 75) setEstimatedMastery("Master");
+      else if (currentMasteryVal > 40) setEstimatedMastery("Proficient");
+      else setEstimatedMastery("Beginner");
+
+
+    } catch (error: any) {
+      console.error("Error during handleSubmit:", error);
+      const errorMessage = error.message || 'Oops! Orbii had a little hiccup. Please try again.';
+      setOrbiiResponse(errorMessage);
+      toast({ variant: 'destructive', title: 'Orbii Error', description: errorMessage });
+      if (isVoiceChatEnabled) speakText(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentQuestion, imageUrl, toast, isSubscribed, studentProfile, currentMood, isVoiceChatEnabled, speakText, progressData]);
+
+
+  const handleMoodSelect = (mood: string) => {
+    setCurrentMood(mood);
+    const moodMessages: {[key: string]: string} = {
+      happy: "Great to hear you're feeling happy! Let's learn something fun!",
+      neutral: "Okay, let's focus and learn something new!",
+      sad: "It's okay to feel stuck sometimes. Orbii is here to help, nice and easy.",
     };
-    fetchGreeting();
-  }, []);
+    toast({ title: "Mood Updated!", description: `Orbii will be extra ${mood === 'sad' ? 'gentle' : mood}.`, icon: mood === "happy" ? <Smile className="text-green-500"/> : mood === "neutral" ? <Meh className="text-yellow-500"/> : <Frown className="text-red-500"/> });
+    setOrbiiResponse(moodMessages[mood] || "Let's get started!");
+    if (isVoiceChatEnabled) speakText(moodMessages[mood] || "Let's get started!");
+  };
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatHistory]);
+  const handleToggleVoiceChat = () => {
+    setIsVoiceChatEnabled(prev => {
+      const turningOn = !prev;
+      if (turningOn) {
+        toast({title: "Voice Chat On", description: "Orbii will now speak responses."});
+        if(orbiiResponse) speakText(orbiiResponse); // Speak current response if any
+      } else {
+         if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
+        toast({title: "Voice Chat Off", description: "Orbii will be quiet now."});
+      }
+      return turningOn;
+    });
+  };
 
-  // Camera Permission Effect
+  const handleListen = () => {
+    if (!isSubscribed) {
+      setShowSubscriptionModal(true);
+      return;
+    }
+    if (recognitionRef.current && !isListening) {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        setOrbiiResponse("Orbii is listening...");
+        toast({ title: "Listening...", description: "What's your question?" });
+      } catch (e: any) {
+        console.error("Error starting speech recognition:", e);
+        toast({ variant: "destructive", title: "Voice Error", description: e.message || "Could not start listening. Please try again." });
+        setIsListening(false);
+      }
+    } else if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      setOrbiiResponse("Okay, processing your question!");
+    } else if (!recognitionRef.current) {
+        toast({ variant: "destructive", title: "Voice Error", description: "Speech recognition is not available in your browser or not allowed." });
+    }
+  };
+  
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+          toast({variant: "destructive", title: "File too large", description: "Please upload images under 5MB."});
+          return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageUrl(reader.result as string);
+        toast({ title: "Image Uploaded", description: file.name, icon: <CheckCircle className="text-green-500" /> });
+      };
+      reader.onerror = () => {
+          toast({variant: "destructive", title: "File Error", description: "Could not read the image file."});
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
   useEffect(() => {
     const getCameraPermission = async () => {
       if (typeof window !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -339,190 +513,83 @@ const AppContent: React.FC<AppContentProps> = ({ initialIsSubscribed }) => {
         } catch (error) {
           console.error('Error accessing camera:', error);
           setHasCameraPermission(false);
-          // Toast is handled in captureImage or when trying to display video now
+          // Toast is shown when user tries to use camera if permission is false
         }
       } else {
+        console.warn('Camera API not available.');
         setHasCameraPermission(false);
       }
     };
     getCameraPermission();
-    return () => { // Cleanup: stop camera stream when component unmounts
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
+    return () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+        }
     };
   }, []);
 
-  const playAudio = (audioDataUri: string) => {
-    if (activeAudio) {
-      activeAudio.pause();
-      activeAudio.currentTime = 0;
-    }
-    const audio = new Audio(audioDataUri);
-    setActiveAudio(audio);
-    audio.play().catch(e => console.error("Error playing audio:", e));
-  };
-
-  const handleUserSubmit = async (textInput?: string) => {
-    const currentMessage = textInput || userInput;
-    if (!currentMessage.trim() && !imageUrl) {
-      toast({ title: "Say Something!", description: "Please type a question or upload an image.", variant: "default" });
-      return;
-    }
-
-    if (!isSubscribed) {
-        setShowSubscriptionModal(true);
-        return;
-    }
-
-    setLoading(true);
-    const userMessageForHistory = currentMessage || (imageUrl ? "Image uploaded" : "Empty message");
-    setChatHistory(prev => [...prev, { type: 'user', text: userMessageForHistory }]);
-    
-    // Clear input field, keep image if it was just used with text
-    if (!textInput) setUserInput(''); 
-    // Consider if image should be cleared immediately or after successful processing
-    // For now, let's keep it until Orbii responds or a new one is uploaded.
-
-    try {
-      const orbiiInputPayload: OrbiiInput = {
-        type: imageUrl ? 'image' : 'text',
-        data: imageUrl || currentMessage,
-        intent: 'homework_help', // This could be more dynamic
-        userMood: currentMood,
-        gradeLevel,
-        learningStrengths,
-        learningStruggles,
-        topic: currentTopic,
-        textContextForImage: imageUrl ? currentMessage : undefined,
-        isNewUser: chatHistory.length <= 1, // Simple check
-        lastSessionContext: chatHistory.length > 1 ? chatHistory[chatHistory.length-2]?.text.substring(0,50) : undefined
-      };
-
-      const response = await orbiiFlow(orbiiInputPayload);
-      let orbiiResponseText = response.response || "I'm not sure how to answer that just yet.";
-      let audioDataUri: string | undefined = undefined;
-
-      if (response.audio) { // Assuming orbiiFlow can return audio
-        const blob = new Blob([response.audio], { type: 'audio/mpeg' });
-        audioDataUri = URL.createObjectURL(blob);
-      }
-      
-      setChatHistory(prev => [...prev, { type: 'orbii', text: orbiiResponseText, audioSrc: audioDataUri }]);
-      
-      if (audioDataUri) {
-        playAudio(audioDataUri);
-      }
-
-      // Clear image URL after successful processing by Orbii
-      if (imageUrl) setImageUrl('');
-
-
-      // Adaptive Lesson Plan
-      if (orbiiResponseText) { // Generate lesson plan based on Orbii's response to the main question
-        const planResponse = await generateLessonPlan({
-            topic: currentTopic || "the current discussion", // Use current topic or a generic placeholder
-            studentLevel: gradeLevel || "their current level", // Use grade level or generic
-            learningStyle: learningStrengths || "their preferred style" // Use strengths or generic
-        });
-        setLessonPlan(planResponse.lessonPlan);
-      }
-
-      // Update Progress (Simplified)
-      setProgressData(prev => {
-        const newWeek = `Week ${prev.length + 1}`;
-        const newQuestions = (prev[prev.length-1]?.questions || 0) + 1;
-        const newMastery = Math.min(100, (prev[prev.length-1]?.mastery || 0) + Math.floor(Math.random() * 10) + 5); // Random small increase
-        if (newMastery > 70) setMasteryLevel("Master");
-        else if (newMastery > 40) setMasteryLevel("Proficient");
-        else setMasteryLevel("Beginner");
-        return [...prev, { name: newWeek, questions: newQuestions, mastery: newMastery }];
-      });
-
-
-    } catch (error: any) {
-      console.error('Orbii error:', error);
-      const errorMessage = `Oops! Something went wrong: ${error.message || 'Unknown error'}`;
-      setChatHistory(prev => [...prev, { type: 'orbii', text: errorMessage }]);
-      toast({ variant: "destructive", title: "Orbii Connection Error", description: error.message || "Could not reach Orbii's brain." });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleMoodSelect = (mood: OrbiiInput['userMood']) => {
-    setCurrentMood(mood);
-    setChatHistory(prev => [...prev, { type: 'orbii', text: `Orbii notes: You're feeling ${mood}. I'll adjust my approach!` }]);
-    toast({ title: "Mood Updated!", description: `Orbii will now be extra ${mood === 'happy' ? 'cheerful' : mood === 'frustrated' ? 'patient' : 'focused'}!` });
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast({ variant: "destructive", title: "File Too Large!", description: "Please upload images under 5MB." });
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImageUrl(reader.result as string);
-        toast({ title: "Image Ready!", description: `Orbii can now see: ${file.name}`, icon: <CheckCircle className="text-green-500" /> });
-      };
-      reader.onerror = () => {
-        toast({ variant: "destructive", title: "Oops!", description: "Couldn't load that image." });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const captureImageFromCamera = useCallback(() => {
     if (hasCameraPermission === false) {
-      toast({ variant: 'destructive', title: 'Camera Access Denied', description: 'Please enable camera permissions in your browser settings to use this app. The site must be served over HTTPS or localhost for camera access.', duration: 7000 });
-      return;
-    }
-     if (!hasCameraPermission) { // Still null, permission not yet determined or failed silently
-        toast({ variant: 'destructive', title: 'Camera Not Ready', description: 'Camera permission might not be granted or is still initializing.' });
+        toast({ variant: 'destructive', title: 'Camera Access Denied', description: 'Please enable camera permissions in your browser settings. The site may also need to be served over HTTPS or localhost.' });
         return;
     }
-    if (videoRef.current && videoRef.current.readyState >= videoRef.current.HAVE_ENOUGH_DATA) {
+    if (hasCameraPermission && videoRef.current && videoRef.current.readyState >= videoRef.current.HAVE_ENOUGH_DATA) {
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/png');
-        setImageUrl(dataUrl);
-        toast({ title: 'Photo Snapped!', description: 'Orbii can see your image now.', icon: <CheckCircle className="text-green-500" /> });
+        const capturedUrl = canvas.toDataURL('image/png');
+        setImageUrl(capturedUrl);
+        toast({ title: 'Image Captured!', description: 'Image from camera is ready.', icon: <CheckCircle className="text-green-500"/> });
+      } else {
+         toast({ variant: 'destructive', title: 'Capture Error', description: 'Could not get canvas context.' });
       }
     } else {
-      toast({ variant: 'destructive', title: 'Camera Not Ready', description: 'The video stream is not available yet. Please wait a moment.' });
+      toast({ variant: 'destructive', title: 'Camera Not Ready', description: 'Camera not available or video stream not ready. Please try again.' });
     }
   }, [hasCameraPermission, toast]);
 
-  const handleTestGemini = async () => {
+
+  const handleTestModels = async () => {
+    if (!isSubscribed) {
+      setShowSubscriptionModal(true);
+      return;
+    }
     setLoading(true);
-    const result = await testGeminiModel();
-    toast({ title: "Gemini Test Result", description: result, duration: 10000 });
+    setOrbiiResponse("Testing AI Models... Please wait.");
+    if(isVoiceChatEnabled) speakText("Testing the AI models now.");
+    try {
+      const geminiResult = await testGeminiModel();
+      toast({ title: "Gemini Test Result", description: geminiResult, duration: 7000 });
+      const openaiResult = await testOpenAIModel();
+      toast({ title: "OpenAI (GPT-4o) Test Result", description: openaiResult, duration: 7000 });
+      const combinedResult = `Gemini Test:\n${geminiResult}\n\nOpenAI (GPT-4o) Test:\n${openaiResult}`;
+      setOrbiiResponse(combinedResult);
+      if(isVoiceChatEnabled) speakText(combinedResult);
+    } catch (e: any) {
+      const errorMsg = `Error during model testing: ${e.message}`;
+      toast({ title: "Test Error", description: errorMsg, variant: "destructive" });
+      setOrbiiResponse(errorMsg);
+      if(isVoiceChatEnabled) speakText(errorMsg);
+    }
     setLoading(false);
   };
 
-  const handleTestOpenAI = async () => {
-    setLoading(true);
-    const result = await testOpenAIModel();
-    toast({ title: "OpenAI Test Result", description: result, duration: 10000 });
-    setLoading(false);
-  };
-  
-  const handleSubscriptionSuccess = () => {
-    setIsSubscribed(true);
-    setShowSubscriptionModal(false);
-  };
-
+  if (!isClient) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-secondary/50">
+            <Mascot talking={false} mood="neutral" />
+            <p className="text-xl text-foreground mt-4">Loading Orbii...</p>
+        </div>
+    );
+  }
 
   return (
-     <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-gradient-to-br from-background to-secondary/50 px-2 md:px-4">
+    <Elements stripe={stripePromise}>
+    <div className="flex flex-col items-center justify-start min-h-screen py-4 bg-gradient-to-br from-background to-secondary/50 px-2 md:px-4">
       <header className="w-full max-w-3xl text-center mb-6">
         <div className="flex justify-center items-center mb-2">
          <Image src="https://picsum.photos/64/64" alt="Kind Mind Learning Logo" width={64} height={64} className="mr-3 rounded-full" data-ai-hint="brain logo"/>
@@ -531,284 +598,283 @@ const AppContent: React.FC<AppContentProps> = ({ initialIsSubscribed }) => {
         <p className="text-muted-foreground text-lg">Orbii: Your friendly AI learning companion!</p>
       </header>
 
-      <main className="flex-grow flex flex-col items-center overflow-hidden max-w-3xl w-full">
-        <Mascot talking={loading || isListening} mood={currentMood} />
-        <MoodSelector onSelectMood={handleMoodSelect} />
-
-        {/* Chat Area */}
-        <div className="w-full flex-grow overflow-y-auto bg-card/50 p-3 rounded-lg shadow-inner space-y-3 mb-3 min-h-[200px] max-h-[50vh]">
-          {chatHistory.map((chat, index) => (
-            <SpeechBubble 
-              key={index} 
-              text={chat.text} 
-              isUser={chat.type === 'user'} 
-              audioSrc={chat.audioSrc}
-              onPlayAudio={chat.audioSrc ? () => playAudio(chat.audioSrc!) : undefined}
-            />
-          ))}
-          <div ref={chatEndRef} />
-           {loading && (
-            <div className="self-start flex items-center space-x-2 p-2">
-              <Bot className="w-6 h-6 text-primary animate-pulse" />
-              <p className="text-sm text-muted-foreground">Orbii is thinking...</p>
-            </div>
-          )}
+      <main className="w-full max-w-3xl flex-1 flex flex-col items-center space-y-6">
+        <div className="relative flex flex-col items-center mb-6 w-full">
+          <Mascot talking={orbiiIsTalking} mood={currentMood} />
+          {orbiiResponse && <SpeechBubble text={orbiiResponse} />}
         </div>
-
-        {/* Input Area */}
-        <Card className="w-full p-3 shadow-xl sticky bottom-2 bg-background/90 backdrop-blur-sm rounded-xl">
-          {imageUrl && (
-            <div className="mb-2 text-center relative">
-              <Image src={imageUrl} alt="Preview" width={100} height={75} style={{ objectFit: 'contain', maxHeight: '75px', width: 'auto' }} className="rounded-md border inline-block" />
-              <Button variant="ghost" size="icon" onClick={() => setImageUrl('')} className="absolute top-0 right-0 text-destructive hover:text-destructive/80 bg-background/50 rounded-full h-6 w-6 p-1">
-                <XCircle className="h-4 w-4" />
+        
+        {!isSubscribed && !showSubscriptionModal && (
+           <Card className="w-full shadow-xl border-primary border-2 bg-card">
+            <CardHeader>
+              <CardTitle className="text-2xl text-primary flex items-center"><Zap className="mr-2 h-7 w-7"/> Unlock Full Learning Potential</CardTitle>
+              <CardDescription className="text-md">Start your 1-month free trial, then $9.99/month. No credit card needed to begin your trial.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                size="lg" 
+                className="w-full bg-primary text-primary-foreground py-4 text-xl font-semibold rounded-lg shadow-md hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2" 
+                onClick={() => {setIsSubscribed(true); toast({title: "Free Trial Started!", description: "Enjoy full access with Orbii!", icon: <CheckCircle className="text-green-500"/>})}}
+                aria-label="Start Free Trial"
+              >
+                <Sun className="mr-2 h-6 w-6"/> Start Free Trial
               </Button>
-            </div>
-          )}
-          <div className="flex items-end gap-2">
-            <Textarea
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Ask Orbii anything, or describe your image..."
-              className="flex-grow resize-none rounded-lg p-3 text-base min-h-[50px]"
-              rows={1}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleUserSubmit();
-                }
-              }}
-            />
-             <Button onClick={handleToggleListening} variant="outline" size="icon" className={`h-12 w-12 rounded-lg ${isListening ? 'bg-destructive text-destructive-foreground animate-pulse' : ''}`} aria-label="Toggle voice input">
-              <Mic className="h-6 w-6" />
-            </Button>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="icon" className="h-12 w-12 rounded-lg" aria-label="Upload or use camera">
-                  <Camera className="h-6 w-6" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Upload Homework Image</DialogTitle>
-                  <DialogDescription>You can upload a file or snap a new photo with your camera.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-3">
-                  <Label htmlFor="image-upload-input" className="w-full text-center cursor-pointer flex items-center justify-center gap-2 p-6 border-2 border-dashed rounded-lg hover:bg-secondary/50 transition-colors">
-                    <FileText className="h-6 w-6 text-muted-foreground"/> Click to Upload File
-                  </Label>
-                  <Input id="image-upload-input" type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-                  
-                  {/* Camera Section */}
-                  <div className="text-center text-sm text-muted-foreground my-2">OR</div>
-                  
-                  <video ref={videoRef} className="w-full aspect-video rounded-md bg-slate-900 border" autoPlay playsInline muted />
+            </CardContent>
+          </Card>
+        )}
 
-                  {hasCameraPermission === null && <p className="text-center text-muted-foreground">Requesting camera access...</p>}
-                  {hasCameraPermission === false && (
-                     <Alert variant="destructive">
-                        <Camera className="h-5 w-5"/> <AlertTitle>Camera Access Denied or Unavailable</AlertTitle>
-                        <AlertDescription>Please allow camera access in your browser settings. Note: Camera requires HTTPS or localhost.</AlertDescription>
-                     </Alert>
-                  )}
-                   <DialogClose asChild>
-                    <Button onClick={captureImageFromCamera} className="w-full" disabled={loading || hasCameraPermission === false}>
-                        <Camera className="mr-2 h-5 w-5"/> Snap Photo & Use
-                    </Button>
-                   </DialogClose>
+        {showSubscriptionModal && stripePromise && (
+          <Dialog open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal}>
+            <DialogContent className="sm:max-w-md bg-card shadow-2xl rounded-lg">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-primary">Subscribe to Kind Mind Learning</DialogTitle>
+                <DialogDescription className="text-md">
+                  Unlimited access to Orbii, personalized lesson plans, progress tracking, and more!
+                </DialogDescription>
+              </DialogHeader>
+              <CheckoutForm onSuccess={() => { setIsSubscribed(true); setShowSubscriptionModal(false); }} />
+              <DialogFooter className="mt-2">
+                <DialogClose asChild>
+                  <Button variant="outline" className="w-full sm:w-auto">Maybe Later</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+         {showSubscriptionModal && !stripePromise && (
+             <Dialog open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Subscription Unavailable</DialogTitle>
+                        <DialogDescription>Stripe is not configured correctly. Please contact support.</DialogDescription>
+                    </DialogHeader>
+                     <DialogFooter className="mt-2">
+                        <DialogClose asChild>
+                        <Button variant="outline">Close</Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+             </Dialog>
+         )}
+        
+        {isSubscribed && (
+          <>
+            <Card className="w-full shadow-lg bg-card">
+              <CardHeader>
+                <CardTitle className="flex items-center text-2xl font-semibold"><Brain className="mr-2 h-6 w-6 text-primary" /> Ask Orbii Anything!</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4">
+                <MoodSelector onSelectMood={handleMoodSelect} />
+                <Card className="p-4 bg-secondary/30 border">
+                    <CardTitle className="text-lg mb-2">Tell Orbii about the learner:</CardTitle>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <Label htmlFor="student-grade" className="font-medium">Grade Level</Label>
+                            <Input id="student-grade" value={studentProfile.grade} onChange={(e) => handleStudentProfileChange('grade', e.target.value)} placeholder="e.g., 5th Grade" className="mt-1"/>
+                        </div>
+                        <div>
+                            <Label htmlFor="student-strengths" className="font-medium">Learning Strengths</Label>
+                            <Input id="student-strengths" value={studentProfile.strengths} onChange={(e) => handleStudentProfileChange('strengths', e.target.value)} placeholder="e.g., Visuals, Patterns" className="mt-1"/>
+                        </div>
+                        <div>
+                            <Label htmlFor="student-struggles" className="font-medium">Learning Struggles</Label>
+                            <Input id="student-struggles" value={studentProfile.struggles} onChange={(e) => handleStudentProfileChange('struggles', e.target.value)} placeholder="e.g., Long texts, Math" className="mt-1"/>
+                        </div>
+                    </div>
+                </Card>
+
+                <Textarea
+                  value={currentQuestion}
+                  onChange={(e) => setCurrentQuestion(e.target.value)}
+                  placeholder="Type your question or use voice input..."
+                  className="min-h-[100px] text-lg p-3 rounded-md shadow-inner border-border focus:ring-2 focus:ring-primary"
+                  aria-label="Question input area"
+                />
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button onClick={() => handleSubmit()} disabled={loading || isListening} className="flex-1 bg-primary text-primary-foreground py-3 text-lg font-semibold rounded-md shadow-md hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                    <Bot className="mr-2 h-5 w-5" /> {loading ? 'Orbii is thinking...' : 'Ask Orbii'}
+                  </Button>
+                  <Button onClick={handleListen} variant="secondary" className={`flex-1 py-3 text-lg font-semibold rounded-md shadow-md ${isListening ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' : 'hover:bg-accent hover:text-accent-foreground focus:ring-2 focus:ring-primary'}`}>
+                    <Mic className="mr-2 h-5 w-5" /> {isListening ? 'Listening...' : 'Speak to Orbii'}
+                  </Button>
                 </div>
-                 <DialogFooter>
-                    <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
-                 </DialogFooter>
+                 <Card className="p-4 bg-secondary/30 border">
+                    <CardTitle className="text-lg mb-3 text-center">Got Homework with Pictures?</CardTitle>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <Label htmlFor="image-upload" className="flex-1 flex items-center justify-center cursor-pointer text-primary hover:underline border-2 border-dashed border-primary rounded-md p-4 hover:bg-primary/10 transition-colors">
+                            <Upload className="mr-2 h-6 w-6" /> Upload Image File
+                        </Label>
+                        <Input id="image-upload" type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="flex-1 text-lg py-3"><Camera className="mr-2 h-6 w-6"/> Use Camera</Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-card">
+                                <DialogHeader><DialogTitle className="text-xl">Live Camera Capture</DialogTitle></DialogHeader>
+                                {hasCameraPermission === null && <p className="text-center p-4">Requesting camera permission...</p>}
+                                {hasCameraPermission === false && <Alert variant="destructive" className="my-4"><AlertTitle>Camera Access Denied</AlertTitle><AlertDescription>Please grant camera access in your browser settings. For camera usage, this site may need to be served over HTTPS or localhost.</AlertDescription></Alert>}
+                                {hasCameraPermission && <video ref={videoRef} className="w-full rounded-md aspect-video bg-black" autoPlay playsInline muted />}
+                                <DialogFooter>
+                                    <Button onClick={captureImageFromCamera} disabled={!hasCameraPermission || loading} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
+                                      <Camera className="mr-2"/> Capture Photo
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                 </Card>
+                {imageUrl && (
+                  <div className="mt-2 p-2 border rounded-md bg-secondary/20">
+                    <p className="text-sm text-muted-foreground mb-1">Image Preview:</p>
+                    <Image src={imageUrl} alt="Homework Preview" width={200} height={150} style={{ objectFit: 'contain', maxHeight: '150px', width: 'auto' }} className="rounded-md border shadow-sm mx-auto" />
+                    <Button variant="ghost" size="sm" onClick={() => setImageUrl('')} className="text-xs text-destructive hover:text-destructive/80 mt-1 block mx-auto">
+                        <XCircle className="inline mr-1 h-3 w-3"/> Clear Image
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {adaptiveLessonPlan && showLessonPlan && (
+              <Card className="w-full shadow-lg bg-card">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center text-xl font-semibold"><FileText className="mr-2 h-5 w-5 text-primary" /> Adaptive Lesson Plan</CardTitle>
+                  <Button variant="ghost" size="icon" onClick={() => setShowLessonPlan(false)} aria-label="Hide lesson plan">
+                    <XCircle className="h-5 w-5 text-muted-foreground hover:text-foreground"/>
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <ul className="list-disc pl-5 space-y-2 text-md">
+                    {adaptiveLessonPlan.map((step, i) => (
+                      <li key={i} className="leading-relaxed">
+                        {step.includes("http") || step.includes("www.") ? 
+                          <a href={step.substring(step.indexOf("http"))} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline hover:text-accent/80 transition-colors">
+                            {step.substring(0, step.indexOf("http"))} <PlayCircle className="inline h-4 w-4 ml-1"/> Link
+                          </a> : 
+                        step}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+             {!showLessonPlan && orbiiResponse && adaptiveLessonPlan && (
+                <Button onClick={() => setShowLessonPlan(true)} variant="link" className="text-primary text-lg font-semibold hover:underline">
+                    <FileText className="mr-2 h-5 w-5"/> Show Lesson Plan
+                </Button>
+            )}
+
+
+            <Dialog open={isWhiteboardOpen} onOpenChange={setIsWhiteboardOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full py-3 text-lg font-semibold rounded-md shadow-md hover:bg-accent hover:text-accent-foreground focus:ring-2 focus:ring-primary"><Palette className="mr-2 h-5 w-5"/> Open Mind Map Whiteboard</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl w-[90vw] h-[85vh] p-0 flex flex-col bg-card">
+                <DialogHeader className="p-4 border-b">
+                  <DialogTitle className="text-xl font-bold text-primary">Orbii's Interactive Whiteboard</DialogTitle>
+                  <DialogDescription>Let's visualize and learn together! Orbii might suggest drawings based on the topic.</DialogDescription>
+                </DialogHeader>
+                <div className="flex-grow"> 
+                    <iframe src="https://excalidraw.com/" title="Excalidraw Whiteboard" width="100%" height="100%" frameBorder="0" className="rounded-b-md"></iframe>
+                </div>
               </DialogContent>
             </Dialog>
-            <Button onClick={()=>handleUserSubmit()} disabled={loading || isListening} className="h-12 w-12 rounded-lg bg-primary text-primary-foreground" aria-label="Send message">
-              {loading ? <Sparkles className="h-6 w-6 animate-spin" /> : <Send className="h-6 w-6" />}
-            </Button>
-          </div>
-        </Card>
 
-        {/* Action Buttons & Student Info */}
-         <Accordion type="single" collapsible className="w-full mt-4">
-          <AccordionItem value="student-info">
-            <AccordionTrigger className="text-primary hover:text-primary/90 font-semibold">Your Learning Profile</AccordionTrigger>
-            <AccordionContent className="space-y-3 p-1">
-              <Input placeholder="Current Topic (e.g., Algebra)" value={currentTopic} onChange={(e) => setCurrentTopic(e.target.value)} />
-              <Input placeholder="Your Grade Level (e.g., 5th Grade)" value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} />
-              <Textarea placeholder="Your Learning Strengths (e.g., Visuals, Storytelling)" value={learningStrengths} onChange={(e) => setLearningStrengths(e.target.value)} />
-              <Textarea placeholder="Learning Struggles (e.g., Long texts, Staying focused)" value={learningStruggles} onChange={(e) => setLearningStruggles(e.target.value)} />
-            </AccordionContent>
-          </AccordionItem>
-
-          {lessonPlan && (
-            <AccordionItem value="lesson-plan">
-                <AccordionTrigger className="text-primary hover:text-primary/90 font-semibold">Orbii's Suggested Lesson Plan</AccordionTrigger>
-                <AccordionContent>
-                    <pre className="whitespace-pre-wrap text-sm bg-secondary/30 p-3 rounded-md overflow-x-auto">{lessonPlan}</pre>
-                </AccordionContent>
-            </AccordionItem>
-          )}
-        </Accordion>
-
-
-        {/* Progress Overview Card */}
-        <Card className="w-full mt-4">
-          <CardHeader>
-            <CardTitle className="text-xl flex items-center"><BarChart3 className="mr-2 h-6 w-6 text-primary"/>Progress Overview</CardTitle>
-            <CardDescription>Track your learning journey with Orbii.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Questions Asked</p>
-                <p className="text-2xl font-bold">{progressData[progressData.length - 1]?.questions || 0}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Estimated Mastery</p>
-                <p className={`text-2xl font-bold ${masteryLevel === 'Master' ? 'text-green-500' : masteryLevel === 'Proficient' ? 'text-yellow-500' : 'text-red-500'}`}>
-                  {masteryLevel}
-                </p>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={progressData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))"/>
-                <XAxis dataKey="name" stroke="hsl(var(--foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--foreground))" fontSize={12}/>
-                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }} />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Line type="monotone" dataKey="questions" stroke="hsl(var(--chart-1))" strokeWidth={2} activeDot={{ r: 6 }} name="Questions"/>
-                <Line type="monotone" dataKey="mastery" stroke="hsl(var(--chart-2))" strokeWidth={2} activeDot={{ r: 6 }} name="Mastery (%)" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Guardian View Toggle & Content */}
-        <Card className="w-full mt-4">
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <CardTitle className="text-xl flex items-center"><Users className="mr-2 h-6 w-6 text-primary"/>Guardian Dashboard</CardTitle>
-                    <div className="flex items-center space-x-2">
-                        <Label htmlFor="guardian-mode">Guardian View</Label>
-                        <Switch id="guardian-mode" checked={showGuardianView} onCheckedChange={setShowGuardianView} />
-                    </div>
+            <Card className="w-full shadow-lg bg-card">
+              <CardHeader>
+                <CardTitle className="flex items-center text-xl font-semibold"><BarChart3 className="mr-2 h-5 w-5 text-primary" /> Progress Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-md">Total Questions Asked: <span className="font-bold text-primary">{questionHistory.length}</span></p>
+                <p className="text-md">Estimated Mastery: <span className="font-bold text-accent">{estimatedMastery}</span></p>
+                <div className="h-72 mt-4"> {/* Increased height for better visibility */}
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={progressData} margin={{ top: 5, right: 20, left: -25, bottom: 5 }}> {/* Adjusted left margin */}
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="name" stroke="hsl(var(--foreground))" tick={{fontSize: 12}} />
+                      <YAxis stroke="hsl(var(--foreground))" tick={{fontSize: 12}} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)' }} 
+                        labelStyle={{ color: 'hsl(var(--popover-foreground))', fontWeight: 'bold' }}
+                        itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
+                      />
+                      <Legend wrapperStyle={{fontSize: 12}}/>
+                      <Line type="monotone" dataKey="questions" name="Questions/Week" stroke="hsl(var(--primary))" strokeWidth={3} activeDot={{ r: 7 }} dot={{r: 4}}/>
+                      <Line type="monotone" dataKey="mastery" name="Mastery %" stroke="hsl(var(--accent))" strokeWidth={3} activeDot={{ r: 7 }} dot={{r: 4}}/>
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
-                <CardDescription>View student progress and insights.</CardDescription>
-            </CardHeader>
-            {showGuardianView && (
-                <CardContent className="space-y-4">
-                    <div>
-                        <h3 className="font-semibold text-md mb-1">Quiz History (Sample)</h3>
-                        <ul className="list-disc list-inside text-sm text-muted-foreground">
-                            <li>Algebra Basics: 85%</li>
-                            <li>Photosynthesis Intro: 92%</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-md mb-1">Student Mood Patterns (Sample)</h3>
-                        <p className="text-sm text-muted-foreground">Often feels 'confused' with word problems. Generally 'happy' during visual tasks.</p>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-md mb-1">Learning Tips for ASD (Sample)</h3>
-                        <ul className="list-disc list-inside text-sm text-muted-foreground">
-                            <li>Use visual schedules for study sessions.</li>
-                            <li>Break down complex tasks into smaller, manageable steps.</li>
-                            <li>Provide clear, direct instructions and avoid idioms.</li>
-                        </ul>
-                    </div>
-                </CardContent>
-            )}
-        </Card>
-        
-        {/* Mind Map Button */}
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="mt-4 w-full md:w-auto">
-              <Brain className="mr-2 h-5 w-5" /> Open Mind Map with Orbii
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl h-[80vh] p-0">
-            <DialogHeader className="p-4 border-b">
-              <DialogTitle>Orbii's Mind Map</DialogTitle>
-              <DialogDescription>
-                Let's explore ideas! Orbii might suggest something based on our topic: "{currentTopic || 'your learning'}"
-              </DialogDescription>
-            </DialogHeader>
-            {/* Embed Excalidraw or a similar whiteboard. This is a simplified example. */}
-            <iframe 
-              src="https://excalidraw.com/" 
-              className="w-full h-full border-0"
-              title="Excalidraw Whiteboard"
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms" // Important for security
-            ></iframe>
-          </DialogContent>
-        </Dialog>
+              </CardContent>
+            </Card>
 
+            <Card className="w-full shadow-lg bg-card">
+                <CardHeader>
+                    <CardTitle className="flex items-center text-xl font-semibold"><Settings className="mr-2 h-5 w-5 text-primary"/>Guardian & App Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-md border">
+                        <Label htmlFor="guardian-view" className="text-lg font-medium">Enable Guardian View</Label>
+                        <Switch id="guardian-view" checked={isGuardianView} onCheckedChange={setIsGuardianView} aria-label="Toggle Guardian View"/>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-md border">
+                        <Label htmlFor="voice-chat-toggle" className="text-lg font-medium">Enable Voice Chat (TTS)</Label>
+                        <Switch id="voice-chat-toggle" checked={isVoiceChatEnabled} onCheckedChange={handleToggleVoiceChat} aria-label="Toggle Voice Chat"/>
+                    </div>
+                    <Button onClick={handleTestModels} className="w-full py-3 text-lg font-semibold rounded-md shadow-md" variant="outline"><Zap className="mr-2 h-5 w-5"/>Test AI Models</Button>
+                </CardContent>
+            </Card>
+
+            {isGuardianView && (
+              <Card className="w-full shadow-lg border-accent border-2 bg-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-xl font-semibold text-accent"><UserCog className="mr-2 h-6 w-6"/> Guardian Dashboard</CardTitle>
+                  <CardDescription>Insights into the student's learning journey.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 text-md">
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">Recent Activity (Last 3):</h3>
+                    {questionHistory.length > 0 ? (
+                        <ul className="list-disc pl-5 space-y-1 text-sm">
+                        {questionHistory.slice(-3).map((item, i) => <li key={i}>Q: "{item.question.substring(0,40)}..." <br/> <span className="text-muted-foreground">A: "{item.answer.substring(0,50)}..."</span></li>)}
+                        </ul>
+                    ) : <p className="text-sm text-muted-foreground">No questions asked yet.</p>}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">Student Mood Patterns:</h3>
+                    <p className="text-sm">Current session mood: <span className="font-bold capitalize">{currentMood}</span>. (More detailed historical mood tracking planned!)</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">Tips for Supporting Autistic Learners:</h3>
+                    <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+                        <li>Use clear, direct, and concise language.</li>
+                        <li>Break down complex tasks into smaller, manageable steps.</li>
+                        <li>Establish routines and provide predictable structures.</li>
+                        <li>Offer frequent positive reinforcement and specific praise.</li>
+                        <li>Utilize visual aids, timers, and checklists.</li>
+                        <li>Be patient and allow for extra processing time.</li>
+                        <li>Minimize sensory distractions during learning.</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+
+          </>
+        )}
       </main>
 
-      {/* Subscription Modal */}
-        <Dialog open={showSubscriptionModal} onOpenChange={setShowSubscriptionModal}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle className="text-xl text-primary">Unlock Full Access!</DialogTitle>
-                    <DialogDescription>
-                        Subscribe to Kind Mind Learning for $9.99/month. Your first month is FREE!
-                        No credit card needed to start your free trial today.
-                        (Test Mode: Card details are for testing and won't be charged).
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="py-4">
-                    {stripePromise ? (
-                        <Elements stripe={stripePromise}>
-                            <CheckoutForm onSuccess={handleSubscriptionSuccess} />
-                        </Elements>
-                    ) : (
-                       <Alert variant="destructive">
-                            <AlertTitle>Stripe Not Configured</AlertTitle>
-                            <AlertDescription>
-                                Stripe payments are currently unavailable. Please check the console for errors regarding the Stripe public key.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </div>
-                 <DialogFooter>
-                    <DialogClose asChild><Button variant="outline" onClick={() => setShowSubscriptionModal(false)}>Maybe Later</Button></DialogClose>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-      
-      <footer className="w-full max-w-3xl mt-8 py-4 text-center text-muted-foreground text-xs border-t">
-        <div className="flex justify-center gap-4 mb-2">
-          <Button variant="ghost" size="sm" onClick={handleTestGemini} disabled={loading}><Zap className="mr-1 h-4 w-4"/>Test Gemini</Button>
-          <Button variant="ghost" size="sm" onClick={handleTestOpenAI} disabled={loading}><Sparkles className="mr-1 h-4 w-4"/>Test OpenAI</Button>
-        </div>
+      <footer className="w-full max-w-3xl mt-10 pt-6 border-t border-border text-center text-muted-foreground text-sm">
         <p>&copy; {new Date().getFullYear()} Kind Mind Learning. All rights reserved.</p>
-        <p>Powered by Firebase Studio & Genkit AI.</p>
+        <p className="mt-1">Empowering neurodiverse learners with Orbii, their AI friend.</p>
+         <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2">
+            {isSubscribed && <Button variant="link" className="text-primary hover:underline" onClick={() => setShowSubscriptionModal(true)}>Manage Subscription</Button>}
+            <Button variant="link" className="text-primary hover:underline">Terms of Service</Button>
+            <Button variant="link" className="text-primary hover:underline">Privacy Policy</Button>
+        </div>
       </footer>
-      <Toaster />
     </div>
+    </Elements>
   );
-};
-
-export default function Home() {
-  // This outer component can handle checks that should only run once on the client
-  // or data fetching that might be needed before AppContent mounts.
-  // For now, assuming initialIsSubscribed might come from a higher-level context or auth check in a real app.
-  const [clientLoaded, setClientLoaded] = useState(false);
-  useEffect(() => {
-    setClientLoaded(true);
-  }, []);
-
-  if (!clientLoaded) {
-    // Render a loading state or null to avoid hydration mismatches related to Stripe or other client-side inits
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-secondary/50">
-        <Bot className="h-16 w-16 text-primary animate-pulse mb-4" />
-        <p className="text-muted-foreground">Orbii is waking up...</p>
-      </div>
-    );
-  }
-  
-  return <AppContent initialIsSubscribed={false} />; // Default to not subscribed
 }
