@@ -11,6 +11,7 @@ This project uses Firebase for Authentication, Firestore, Storage, and Cloud Fun
 
 *   Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project (or use an existing one).
 *   Add a Web App to your Firebase project to get your Firebase SDK configuration snippet.
+
 *   Enable the following Firebase services:
     *   **Authentication**: Enable Google, Email/Password, and Anonymous sign-in methods.
     *   **Firestore**: Create a Firestore database in Native mode.
@@ -20,7 +21,7 @@ This project uses Firebase for Authentication, Firestore, Storage, and Cloud Fun
 ### 2. Install Firebase CLI
 
 If you haven't already, install the Firebase CLI globally:
-`npm install -g firebase-tools`
+npm install -g Firebase-tools`
 
 ### 3. Login to Firebase
 

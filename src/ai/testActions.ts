@@ -10,21 +10,19 @@ import { callOpenAIGPT4o } from '@/services/callOpenAIGPT4o'; // Ensure this ser
 
 export async function testGeminiModel(): Promise<string> {
   console.log('Testing Gemini Model (Server Action)...');
-  // console.log('GOOGLE_GENAI_API_KEY in testGeminiModel:', process.env.GOOGLE_GENAI_KEY); // GOOGLE_GENAI_KEY seems like a typo, should be GOOGLE_GENAI_API_KEY
   console.log('GOOGLE_GENAI_API_KEY in testGeminiModel:', process.env.GOOGLE_GENAI_API_KEY);
 
 
   try {
-    if (!ai) { // ai should always be configured if this file is reached
+    if (!ai) { 
       return 'Gemini Test Skipped: Genkit AI instance not available.';
     }
     if (!process.env.GOOGLE_GENAI_API_KEY) {
       return 'Gemini Test Skipped: GOOGLE_GENAI_API_KEY not set.';
     }
 
-    // Using a specific model for the test, or rely on default if configured in `ai` instance
     const result = await ai.generate({
-      model: 'gemini-1.5-flash-latest', // Or use ai.getModel() if a default is reliably set
+      model: 'gemini-1.5-flash-latest', 
       prompt: 'Tell me a short joke.',
     });
     
@@ -38,7 +36,7 @@ export async function testGeminiModel(): Promise<string> {
     if (error.cause?.message) {
       errorMessage += ` Cause: ${error.cause.message}`;
     }
-    const modelNameInUse = ai.getModel()?.name || 'gemini-1.5-flash-latest';
+    const modelNameInUse = 'gemini-1.5-flash-latest'; // Explicitly state model for error message
      if (error.message?.includes('NOT_FOUND') || error.message?.includes('Model not found')) {
       errorMessage += ` (Is the model name '${modelNameInUse}' correct and available in your region/project?)`;
     }
@@ -55,15 +53,18 @@ export async function testOpenAIModel(): Promise<string> {
   }
 
   try {
-    // callOpenAIGPT4o should itself be a server action or a server-side utility
     const response = await callOpenAIGPT4o('Tell me a short joke about AI.');
-    if (response && !response.startsWith("I'm having trouble connecting") && !response.startsWith("OpenAI service is not available")) {
-      return `OpenAI Test Success: ${response}`;
-    } else {
-      return `OpenAI Test Failed: ${response || 'No response or connection issue.'}`;
+    
+    if (typeof response === 'string') { // Error message string from callOpenAIGPT4o
+      return `OpenAI Test Failed: ${response}`;
     }
-  } catch (error: any)
- {
+    
+    if (response && response.text && !response.text.startsWith("I'm having trouble connecting") && !response.text.startsWith("OpenAI service is not available")) {
+      return `OpenAI Test Success: ${response.text}`;
+    } else {
+      return `OpenAI Test Failed: ${response.text || 'No response or connection issue.'}`;
+    }
+  } catch (error: any) {
     console.error('OpenAI Test Error (Server Action):', error);
     return `OpenAI Test Failed: ${error.message || 'An unexpected error occurred.'}`;
   }
