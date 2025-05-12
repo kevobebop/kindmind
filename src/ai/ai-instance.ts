@@ -1,52 +1,54 @@
 /**
  * @fileOverview Initializes and exports the Genkit AI instance.
  * This file should primarily focus on the AI configuration.
+ * It should NOT contain 'use server' if its main export is the 'ai' object.
  */
-
-// IMPORTANT: This file should NOT have 'use server' or 'use client' at the top.
-// It is a module for configuring and exporting the Genkit instance.
-
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
 
-// Configure Genkit
-const configureGenkitInstance = () => {
-  const plugins = [];
-  // Ensure API keys are loaded (add console logs for debugging if needed)
-  // console.log('Preview GOOGLE_GENAI_API_KEY:', process.env.GOOGLE_GENAI_API_KEY); // Moved inside or to specific actions
+console.log('Configuring Genkit AI instance in ai-instance.ts...');
+const apiKey = process.env.GOOGLE_GENAI_API_KEY;
 
-  if (process.env.GOOGLE_GENAI_API_KEY) {
-    plugins.push(googleAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY }));
-    console.log('Google AI plugin configured.');
-  } else {
-    console.warn(
-      'GOOGLE_GENAI_API_KEY is not set. Google AI features will be unavailable.',
-    );
-  }
+if (!apiKey) {
+  console.warn(
+    'GOOGLE_GENAI_API_KEY is not set in ai-instance.ts. Google AI features will be unavailable. Genkit might initialize with no plugins.'
+  );
+}
 
-  try {
-    const instance = genkit({
-      plugins: plugins,
-      logLevel: 'debug',
-      enableTracingAndMetrics: true,
-    });
-    if (!instance) {
-      console.error("Genkit instance failed to initialize!");
-      // Return a placeholder or throw to prevent undefined behavior
-      // For now, let's throw so it's obvious if initialization fails.
-      throw new Error("Failed to initialize Genkit instance.");
-    }
-    console.log("Genkit instance configured successfully.");
-    return instance;
-  } catch (error) {
-    console.error("Error during Genkit initialization:", error);
-    // Depending on how you want to handle this, you could return a non-functional
-    // placeholder or re-throw the error. Re-throwing makes the problem visible.
-    throw error;
-  }
-};
+// Initialize plugins array
+const plugins = [];
+if (apiKey) {
+  plugins.push(googleAI({ apiKey }));
+  console.log('Google AI plugin configured for Genkit in ai-instance.ts.');
+}
 
-export const ai = configureGenkitInstance();
+let genkitInstance;
+try {
+  genkitInstance = genkit({
+    plugins: plugins,
+    logLevel: 'debug', // Or 'info'
+    enableTracingAndMetrics: true,
+  });
+} catch (e: any) {
+  console.error("CRITICAL: Error during genkit({ ... }) call in ai-instance.ts:", e);
+  // In case of a catastrophic failure during genkit init, re-throw or handle
+  throw new Error(`Genkit initialization failed: ${e.message}`);
+}
 
-// testGeminiModel and testOpenAIModel were moved to src/ai/testActions.ts
-// which should have 'use server'; at its top.
+
+if (genkitInstance) {
+  console.log('Genkit AI instance configured successfully in ai-instance.ts.');
+} else {
+  // This block should ideally not be reached if genkit() throws on failure.
+  console.error('CRITICAL: Genkit AI instance is null or undefined after configuration in ai-instance.ts.');
+  // Fallback to a dummy object to prevent crashes if absolutely necessary,
+  // though this indicates a fundamental problem with Genkit initialization.
+  genkitInstance = { 
+    generate: async () => ({ text: () => "ERROR: AI not initialized properly" }),
+    definePrompt: () => async () => ({ output: undefined, text: () => "ERROR: AI not initialized properly" }),
+    defineFlow: (config: any, func: any) => func, // Simple pass-through for flows
+    // Add other methods if they are called and cause crashes
+  } as any; // Cast to any to assign a dummy object
+}
+
+export const ai = genkitInstance;
