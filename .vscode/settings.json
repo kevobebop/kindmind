@@ -1,0 +1,9 @@
+{
+    "IDX.aI.enableInlineCompletion": true,
+    "IDX.aI.enableCodebaseIndexing": true,
+    "files.autoSave": "afterDelay",
+    "debug.console.acceptSuggestionOnEnter": "on",
+    "scm.alwaysShowRepositories": true,
+    "IDX.corgiMode": true,
+    "git.ignoreLimitWarning": true
+}

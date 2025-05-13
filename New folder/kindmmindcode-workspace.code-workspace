@@ -1,0 +1,28 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../public"
+		},
+		{
+			"path": "../functions"
+		},
+		{
+			"path": "../docs"
+		},
+		{
+			"path": "../N"
+		},
+		{
+			"path": "../.idx"
+		},
+		{
+			"path": "../.vscode"
+		},
+		{
+			"path": "../node_modules"
+		}
+	]
+}

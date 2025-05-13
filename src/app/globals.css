@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif; /* Added more common fallbacks */
+}
+
+@layer base {
+  :root {
+    /* Soft, calming, and accessible color palette for KindMind Learning */
+    --background: 210 60% 98%; /* Very light, slightly cool off-white */
+    --foreground: 210 20% 25%; /* Dark, soft blue-gray for text */
+    
+    --card: 0 0% 100%; /* White cards for content areas */
+    --card-foreground: 210 20% 25%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 20% 25%;
+    
+    --primary: 190 70% 65%; /* Gentle Teal/Aqua - Orbii's main color */
+    --primary-foreground: 210 20% 15%; /* Darker for text on primary */
+    
+    --secondary: 180 25% 90%; /* Light, muted cyan-gray for secondary elements */
+    --secondary-foreground: 210 20% 30%; 
+    
+    --muted: 210 30% 90%; /* Lighter gray for muted text/borders */
+    --muted-foreground: 210 20% 45%;
+    
+    --accent: 30 90% 70%; /* Warm, friendly Orange for accents/CTAs */
+    --accent-foreground: 0 0% 100%; /* White text on accent */
+    
+    --destructive: 0 70% 60%; /* Softer Red for destructive actions */
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 210 30% 85%; /* Slightly darker muted for borders */
+    --input: 210 30% 92%;   /* Light input background */
+    --ring: 190 70% 55%;    /* Primary color for focus rings */
+
+    --chart-1: 190 70% 65%; /* Primary Teal */
+    --chart-2: 30 90% 70%;  /* Accent Orange */
+    --chart-3: 260 70% 70%; /* Friendly Purple */
+    --chart-4: 140 60% 65%; /* Soft Green */
+    --chart-5: 45 80% 70%;  /* Sunny Yellow */
+    
+    --radius: 0.75rem; /* Slightly more rounded corners */
+
+    /* Sidebar specific theme variables - can be adjusted if sidebar is deeply integrated */
+    --sidebar-background: 210 50% 95%;
+    --sidebar-foreground: 210 20% 30%;
+    --sidebar-primary: 190 70% 55%; 
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 190 70% 85%;
+    --sidebar-accent-foreground: 210 20% 20%;
+    --sidebar-border: 210 30% 80%;
+    --sidebar-ring: 190 70% 50%;
+  }
+
+  .dark {
+    /* Dark theme adjustments - maintaining soft contrasts */
+    --background: 210 20% 12%; /* Dark cool gray */
+    --foreground: 210 30% 90%; /* Light gray for text */
+    
+    --card: 210 20% 18%; /* Darker card background */
+    --card-foreground: 210 30% 90%;
+    
+    --popover: 210 20% 15%;
+    --popover-foreground: 210 30% 90%;
+    
+    --primary: 190 70% 60%; /* Teal - slightly brighter in dark mode */
+    --primary-foreground: 210 20% 10%;
+    
+    --secondary: 210 20% 25%; /* Darker muted cyan-gray */
+    --secondary-foreground: 210 30% 85%;
+    
+    --muted: 210 20% 22%;
+    --muted-foreground: 210 30% 65%;
+    
+    --accent: 30 90% 65%; /* Orange - slightly brighter in dark mode */
+    --accent-foreground: 210 20% 10%;
+    
+    --destructive: 0 60% 55%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 210 20% 30%;
+    --input: 210 20% 25%;
+    --ring: 190 70% 50%;
+
+    --chart-1: 190 70% 60%;
+    --chart-2: 30 90% 65%;
+    --chart-3: 260 70% 65%;
+    --chart-4: 140 60% 60%;
+    --chart-5: 45 80% 65%;
+
+    /* Sidebar dark theme */
+    --sidebar-background: 210 20% 15%;
+    --sidebar-foreground: 210 30% 85%;
+    --sidebar-primary: 190 70% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 190 70% 30%;
+    --sidebar-accent-foreground: 210 30% 90%;
+    --sidebar-border: 210 20% 25%;
+    --sidebar-ring: 190 70% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    line-height: 1.6; /* Improved readability */
+  }
+  /* Ensure focus states are highly visible for accessibility */
+  *:focus-visible {
+    @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}

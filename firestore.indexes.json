@@ -1,0 +1,14 @@
+{
+  "indexes": [
+    // Example: If you query lessons by studentId and order by createdAt
+    // {
+    //   "collectionGroup": "lessons",
+    //   "queryScope": "COLLECTION",
+    //   "fields": [
+    //     { "fieldPath": "studentId", "order": "ASCENDING" },
+    //     { "fieldPath": "createdAt", "order": "DESCENDING" }
+    //   ]
+    // }
+  ],
+  "fieldOverrides": []
+}
