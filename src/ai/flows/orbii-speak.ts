@@ -36,3 +36,4 @@ export const orbiiSpeak = new Flow(
   }
 );
 // The Next.js Genkit plugin will auto-generate the HTTP endpoint under `/api/genkit/orbii-speak`
+// The module declaration is now provided in src/types/genkit-ai__flow.d.ts
