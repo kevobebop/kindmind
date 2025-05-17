@@ -7,7 +7,7 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
 // Initialize the Admin SDK once
 if (!admin.apps.length) {

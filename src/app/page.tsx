@@ -2,6 +2,8 @@
 
 'use client';
 
+declare var SpeechRecognition: any;
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   getOrbiiGreeting,
@@ -9,6 +11,8 @@ import {
   OrbiiInput,
   OrbiiOutput,
 } from '@/ai/flows/orbiiFlow';
+import { testGeminiModel, testOpenAIModel } from '@/ai/testActions';
+
 import { generateLessonPlan } from '@/ai/flows/generate-lesson-plan';
 import { generateProgressReport } from '@/ai/flows/generate-progress-report';
 import {
@@ -59,9 +63,7 @@ import { Elements, useStripe, useElements, CardElement } from '@stripe/react-str
 import { Icons } from '@/components/icons';
 import Image from 'next/image';
 import { asdTutor, AsdTutorOutput } from '@/ai/flows/asd-tutor-flow';
-import OrbiiWhiteboard from '@/components/OrbiiWhiteboard';
-
-import { testGeminiModel, testOpenAIModel } from '@/ai/testActions';
+import OrbiiWhiteboard from '@/components/src/components/OrbiiWhiteboard';
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -77,9 +79,12 @@ const Mascot = ({ talking, mood }: { talking: boolean; mood: string }) => {
     setIsClient(true);
   }, []);
 
+  // ← Fix #1: Ensure we return a placeholder on SSR
   if (!isClient) {
     // Fallback or placeholder for SSR to avoid hydration mismatch
-    return <div className="w-32 h-32 bg-gray-200 rounded-full animate-pulse mx-auto"></div>;
+    return (
+      <div className="w-32 h-32 bg-gray-200 rounded-full animate-pulse mx-auto" />
+    );
   }
 
   let moodClasses = "bg-blue-400"; // Default mood
@@ -128,7 +133,7 @@ const SpeechBubble = ({ text }: { text: string }) => {
 };
 
 
-const MoodSelector = ({ onSelectMood }: { onSelectMood: (mood: string) => void }) => {
+const MoodSelector = ({ onSelectMood }: { onSelectMood: (mood: 'neutral' | 'happy' | 'sad') => void }) => {
   const moods = [
     { value: "happy", label: "Happy", icon: <Smile className="mr-2 h-6 w-6" /> },
     { value: "neutral", label: "Okay", icon: <Meh className="mr-2 h-6 w-6" /> },
@@ -147,7 +152,7 @@ const MoodSelector = ({ onSelectMood }: { onSelectMood: (mood: string) => void }
             key={mood.value}
             variant="outline"
             className="flex-1 text-md px-4 py-3 rounded-lg shadow-sm hover:shadow-md transition-shadow hover:bg-accent hover:text-accent-foreground focus:ring-2 focus:ring-primary"
-            onClick={() => onSelectMood(mood.value)}
+            onClick={() => onSelectMood(mood.value as 'neutral' | 'happy' | 'sad')}
             aria-label={`Select mood ${mood.label}`}
           >
             {mood.icon} {mood.label}
@@ -222,6 +227,24 @@ const CheckoutForm = ({ onSuccess }: { onSuccess: () => void }) => {
 };
 
 
+// Genkit-based audio playback by sending text to the /api/genkit/orbii-speak endpoint
+export async function speakWithOrbii(text: string) {
+  const res = await fetch('/api/genkit/orbii-speak', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+
+  const { output: base64Audio } = await res.json();
+
+  if (base64Audio) {
+    const audio = new Audio(`data:audio/mpeg;base64,${base64Audio}`);
+    audio.play();
+  } else {
+    console.warn('Orbii did not respond with audio.');
+  }
+}
+
 export default function Home() {
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [orbiiResponse, setOrbiiResponse] = useState('');
@@ -231,9 +254,12 @@ export default function Home() {
   const [questionHistory, setQuestionHistory] = useState<{ question: string; answer: string }[]>([]);
   const [isVoiceChatEnabled, setIsVoiceChatEnabled] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<InstanceType<typeof SpeechRecognition> | null>(null);
 
-  const [currentMood, setCurrentMood] = useState("neutral");
+  // Add a literal type for moods
+  type Mood = 'neutral' | 'happy' | 'sad' | 'frustrated' | 'confused';
+
+  const [currentMood, setCurrentMood] = useState<Mood>('neutral');
   const [adaptiveLessonPlan, setAdaptiveLessonPlan] = useState<string[] | null>(null);
   const [showLessonPlan, setShowLessonPlan] = useState(false);
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
@@ -260,14 +286,14 @@ export default function Home() {
     setIsClient(true); // Component has mounted
     // Initialize SpeechRecognition
     if (typeof window !== 'undefined') {
-      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recog = new SpeechRecognition();
+          const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+          if (SpeechRecognition) {
+            const recog = new SpeechRecognition();
         recog.continuous = false; // Listen for a single utterance
         recog.interimResults = false; // We only want final results
         recog.lang = 'en-US';
 
-        recog.onresult = (event: SpeechRecognitionEvent) => {
+        recog.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
           setCurrentQuestion(transcript); // Update question input with transcript
           toast({ title: 'Voice Input Received', description: transcript });
@@ -275,7 +301,7 @@ export default function Home() {
           // handleSubmit(transcript); // Optionally auto-submit after voice input
         };
 
-        recog.onerror = (event: SpeechRecognitionEventMap['error']) => {
+        recog.onerror = (event: any) => {
           console.error('Speech recognition error', event.error, event.message);
           let errorMessage = `Could not understand audio: ${event.error}.`;
           if (event.error === 'no-speech') errorMessage = "Didn't hear anything. Try speaking louder?";
@@ -431,14 +457,14 @@ export default function Home() {
   }, [currentQuestion, imageUrl, toast, isSubscribed, studentProfile, currentMood, isVoiceChatEnabled, speakText, progressData]);
 
 
-  const handleMoodSelect = (mood: string) => {
+  const handleMoodSelect = (mood: Mood) => {
     setCurrentMood(mood);
     const moodMessages: {[key: string]: string} = {
       happy: "Great to hear you're feeling happy! Let's learn something fun!",
       neutral: "Okay, let's focus and learn something new!",
       sad: "It's okay to feel stuck sometimes. Orbii is here to help, nice and easy.",
     };
-    toast({ title: "Mood Updated!", description: `Orbii will be extra ${mood === 'sad' ? 'gentle' : mood}.`, icon: mood === "happy" ? <Smile className="text-green-500"/> : mood === "neutral" ? <Meh className="text-yellow-500"/> : <Frown className="text-red-500"/> });
+    toast({ title: "Mood Updated!", description: `Orbii will be extra ${mood === 'sad' ? 'gentle' : mood}.` });
     setOrbiiResponse(moodMessages[mood] || "Let's get started!");
     if (isVoiceChatEnabled) speakText(moodMessages[mood] || "Let's get started!");
   };
@@ -492,7 +518,7 @@ export default function Home() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageUrl(reader.result as string);
-        toast({ title: "Image Uploaded", description: file.name, icon: <CheckCircle className="text-green-500" /> });
+        toast({ title: "Image Uploaded", description: file.name });
       };
       reader.onerror = () => {
           toast({variant: "destructive", title: "File Error", description: "Could not read the image file."});
@@ -543,7 +569,7 @@ export default function Home() {
         context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
         const capturedUrl = canvas.toDataURL('image/png');
         setImageUrl(capturedUrl);
-        toast({ title: 'Image Captured!', description: 'Image from camera is ready.', icon: <CheckCircle className="text-green-500"/> });
+        toast({ title: 'Image Captured!', description: 'Image from camera is ready.' });
       } else {
          toast({ variant: 'destructive', title: 'Capture Error', description: 'Could not get canvas context.' });
       }
@@ -614,7 +640,7 @@ export default function Home() {
               <Button 
                 size="lg" 
                 className="w-full bg-primary text-primary-foreground py-4 text-xl font-semibold rounded-lg shadow-md hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2" 
-                onClick={() => {setIsSubscribed(true); toast({title: "Free Trial Started!", description: "Enjoy full access with Orbii!", icon: <CheckCircle className="text-green-500"/>})}}
+                onClick={() => {setIsSubscribed(true); toast({title: "Free Trial Started!", description: "Enjoy full access with Orbii!"})}}
                 aria-label="Start Free Trial"
               >
                 <Sun className="mr-2 h-6 w-6"/> Start Free Trial

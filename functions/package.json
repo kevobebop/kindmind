@@ -15,6 +15,7 @@
   "dependencies": {
     "@genkit-ai/firebase": "^1.0.4",
     "@genkit-ai/googleai": "^1.0.4",
+    "axios": "^1.9.0",
     "firebase-admin": "^12.7.0",
     "firebase-functions": "^5.0.0",
     "genkit": "^1.0.4",
