@@ -4,6 +4,5 @@
     "files.autoSave": "afterDelay",
     "debug.console.acceptSuggestionOnEnter": "on",
     "scm.alwaysShowRepositories": true,
-    "IDX.corgiMode": true,
-    "git.ignoreLimitWarning": true
+    "IDX.corgiMode": true
 }

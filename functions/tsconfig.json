@@ -14,7 +14,6 @@
   },
   "compileOnSave": true,
   "include": [
-    "index.ts",
     "src"
   ]
 }
